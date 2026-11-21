@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.2.1] - 2026-11-21
+
+### Geändert
+- Monster-Hüpfen ruhiger: Starttempo 34 statt 46 px/s, Höchsttempo 50 statt 70 px/s, langsamere Steigerung, Monster laufen gemächlicher
+
 ## [1.2.0] - 2026-11-21
 
 ### Geändert

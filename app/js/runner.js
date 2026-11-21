@@ -155,7 +155,7 @@ export function createRunner(root, cfg) {
 
   function reset() {
     G = {
-      state: 'ready', t: 0, speed: 46, scroll: 0, coins: 0, hearts: 3, combo: 0, stomps: 0,
+      state: 'ready', t: 0, speed: 34, scroll: 0, coins: 0, hearts: 3, combo: 0, stomps: 0,
       wave: null, cooldown: 0.6, banner: null, mons: [], parts: [], pops: [], shake: 0, inv: 0, overT: 0,
       p: { y: GROUND, vy: 0, ground: true, coyote: 0, buffer: 0, held: false, cut: true, run: 0 },
     };
@@ -224,7 +224,7 @@ export function createRunner(root, cfg) {
     const p = G.p;
     if (G.state === 'run') {
       G.t += dt;
-      G.speed = Math.min(70, 46 + G.t * 0.3);
+      G.speed = Math.min(50, 34 + G.t * 0.12);
       G.scroll += G.speed * dt;
       p.run += dt * 8;
     }
@@ -253,7 +253,7 @@ export function createRunner(root, cfg) {
     // Monster bewegen und Kollisionen prüfen
     for (const m of G.mons) {
       m.t += dt;
-      if (m.state === 'walk') m.x -= (G.speed + 8) * dt;
+      if (m.state === 'walk') m.x -= (G.speed + 4) * dt;
       else if (m.state === 'flee') m.x -= (G.speed - 120) * dt;
       else m.x -= G.speed * dt;
 

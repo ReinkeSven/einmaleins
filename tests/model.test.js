@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DAY, MIN, allKeys, freshState, migrate, encodeBackup, decodeBackup, level, record, weight,
-  pickWeighted, poolFor, weakest, makeQ, canon, streak, lvl, xpGain, checkMedals, dkey,
+  pickWeighted, poolFor, weakest, makeQ, canon, distractors, streak, lvl, xpGain, checkMedals, dkey,
 } from '../app/js/model.js';
 
 const T0 = new Date('2026-11-02T10:00:00').getTime();
@@ -134,4 +134,25 @@ test('Medaillen werden genau einmal vergeben', () => {
   S.rounds = 1;
   assert.deepEqual(checkMedals(S, T0).map(m => m.id), ['start']);
   assert.equal(checkMedals(S, T0).length, 0);
+});
+
+test('Falschantworten sind verschieden, positiv und nie die Lösung', () => {
+  for (const k of allKeys()) {
+    for (const r of [0.05, 0.5, 0.95]) {
+      const q = makeQ(k, () => r);
+      const d = distractors(q, 2, Math.random);
+      assert.equal(d.length, 2, k);
+      assert.equal(new Set(d).size, 2, k);
+      for (const v of d) {
+        assert.ok(v > 0, `${k}: ${v}`);
+        assert.notEqual(v, q.ans, k);
+      }
+    }
+  }
+});
+
+test('Falschantworten sind plausibel nah an der Aufgabe', () => {
+  const q = { k: 'm7x8', tok: [7, '·', 8, '=', null], ans: 56 };
+  const plausible = new Set([64, 48, 63, 49, 66, 46, 65]);
+  for (let i = 0; i < 20; i++) assert.ok(distractors(q).every(v => plausible.has(v)));
 });

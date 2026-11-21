@@ -158,6 +158,33 @@ export function makeQ(k, rand = Math.random) {
   return { k, tok: [null, '·', b, '=', c], ans: a };
 }
 
+/**
+ * Plausible Falschantworten für Multiple Choice (Monster-Hüpfen):
+ * Nachbaraufgaben, vertauschte Ziffern, eine Zehnerreihe daneben. Liefert n verschiedene Zahlen > 0, ≠ ans.
+ */
+export function distractors(q, n = 2, rand = Math.random) {
+  const p = parse(q.k), ans = q.ans;
+  let cand;
+  if (p.t === 'm') {
+    const { x: a, y: b } = p;
+    cand = [(a + 1) * b, (a - 1) * b, a * (b + 1), a * (b - 1), ans + 10, ans - 10];
+    if (ans >= 10) cand.push(Number(String(ans).split('').reverse().join('')));
+  } else {
+    const { x: a, y: b } = p;
+    cand = [a + 1, a - 1, a + 2, a - 2, b];
+  }
+  const shuffled = cand.map(v => [v, rand()]).sort((u, v) => u[1] - v[1]).map(e => e[0]);
+  const out = new Set();
+  for (const v of shuffled) {
+    if (out.size >= n) break;
+    if (v > 0 && v <= 100 && v !== ans) out.add(v);
+  }
+  for (let d = 1; out.size < n; d++) {
+    for (const v of [ans + d, ans - d]) if (out.size < n && v > 0 && v !== ans) out.add(v);
+  }
+  return [...out];
+}
+
 export function canon(k) {
   const p = parse(k);
   return p.t === 'm' ? `${p.x} · ${p.y} = ${p.x * p.y}` : `${p.x * p.y} : ${p.y} = ${p.x}`;

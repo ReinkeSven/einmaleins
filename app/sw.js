@@ -1,6 +1,6 @@
 // Service Worker: hält die App offline verfügbar.
 // Der Spielstand liegt im localStorage, nicht hier. Bei jeder Änderung an App-Dateien VERSION erhöhen.
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const CACHE = `einmaleins-${VERSION}`;
 const CORE = [
   './',
@@ -8,6 +8,7 @@ const CORE = [
   './css/styles.css',
   './js/app.js',
   './js/model.js',
+  './js/runner.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

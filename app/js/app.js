@@ -2,10 +2,12 @@
 import {
   DAY, LVNAME, MEDALS, dkey, parse, freshState, migrate, encodeBackup, decodeBackup,
   level, hardness, pickWeighted, poolFor, weakest, makeQ, canon, canonShort, dayRec,
-  record, xpGain, streak, lvl, rowGold, checkMedals,
+  record, xpGain, streak, lvl, rowGold, checkMedals, distractors,
 } from './model.js';
+import { createRunner } from './runner.js';
 
 const KEY = 'einmaleins-arena-v1';
+const FUN_KEY = 'einmaleins-arena-fun'; // Monster-Hüpfen: nur Bestwert, getrennt von der Lernstatistik
 const LVCOL = { '-1': 'var(--new)', '0': 'var(--learn)', '1': 'var(--bronze)', '2': 'var(--silver)', '3': 'var(--gold)' };
 const TIER = { b: 'var(--bronze)', s: 'var(--silver)', g: 'var(--gold)' };
 const WD = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
@@ -25,6 +27,7 @@ let tick = null;
 let storageOK = false;
 let persisted = null;
 let ui = blankUi();
+let runner = null;
 function blankUi() { return { copyMsg: '', importMsg: '', importOk: false, pending: null, resetArm: false }; }
 
 /* ---------- Speichern ---------- */
@@ -37,6 +40,32 @@ function loadLocal() {
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; } catch { storageOK = false; }
 }
+function loadFun() {
+  try { return JSON.parse(localStorage.getItem(FUN_KEY)) || { best: 0 }; } catch { return { best: 0 }; }
+}
+function saveFun(fun) {
+  try { localStorage.setItem(FUN_KEY, JSON.stringify(fun)); } catch { /* ohne Speicher kein Bestwert */ }
+}
+
+/* ---------- Monster-Hüpfen (zählt nicht für die Statistik) ---------- */
+let funRecent = [];
+function funQuestion() {
+  // Liest die Lerngewichte, schreibt aber nichts zurück
+  const k = pickWeighted(S, poolFor(S.mode), funRecent);
+  funRecent = [...funRecent, k].slice(-6);
+  const q = makeQ(k);
+  const opts = [q.ans, ...distractors(q, 2)].map(v => [v, Math.random()]).sort((a, b) => a[1] - b[1]).map(e => e[0]);
+  return { ...q, opts };
+}
+function mountRunner() {
+  runner = createRunner($('#runroot'), {
+    nextQuestion: funQuestion,
+    best: loadFun().best,
+    onBest: n => saveFun({ ...loadFun(), best: n }),
+    onExit: () => show('home'),
+  });
+}
+
 async function askPersist() {
   try {
     if (navigator.storage && navigator.storage.persist) {
@@ -300,6 +329,10 @@ function vHome() {
     <button class="tile" data-act="rowpick" aria-expanded="${rowOpen}"><b>Reihe</b><small>Eine Reihe gezielt üben</small></button>
   </div>
   <div class="rows" ${rowOpen ? '' : 'hidden'}>${rows}</div>
+  <button class="fun" data-act="runner">
+    <svg viewBox="0 0 120 90" class="fun-mon" aria-hidden="true"><path d="M22 82Q14 14 60 10Q106 14 98 82Z" fill="var(--sun)" stroke="var(--ink)" stroke-width="5"/><circle cx="45" cy="38" r="10" fill="#fff"/><circle cx="76" cy="38" r="10" fill="#fff"/><circle cx="43" cy="40" r="5" fill="var(--ink)"/><circle cx="74" cy="40" r="5" fill="var(--ink)"/><path d="M33 22L54 30M88 22L67 30" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/><text x="60" y="72" text-anchor="middle" font-family="Dela Gothic One, Arial Black, sans-serif" font-size="26" fill="var(--ink)">56</text></svg>
+    <span><b>Monster-Hüpfen</b><small>Nur zum Spaß · Bestwert ${loadFun().best} Münzen</small></span>
+  </button>
   ${needBackup ? '<div class="note"><b>Backup fällig.</b> Dein Fortschritt liegt nur auf diesem Handy. <button data-tab="more">Jetzt sichern</button></div>' : ''}
   ${!storageOK ? '<div class="note"><b>Speichern geht hier nicht.</b> Dieser Browser erlaubt keinen Speicher. Sichere deinen Fortschritt nach dem Spielen unter Backup.</div>' : ''}
   <section class="card">
@@ -422,13 +455,15 @@ function vMore() {
   <p class="small">Speicher: ${storageOK ? 'verfügbar' : 'nicht verfügbar'}. Dauerhafter Speicher: ${persistText}</p>`;
 }
 
-const VIEWS = { home: vHome, stats: vStats, medals: vMedals, more: vMore, play: vPlay, result: vResult };
+const VIEWS = { home: vHome, stats: vStats, medals: vMedals, more: vMore, play: vPlay, result: vResult, runner: () => '<div id="runroot" class="runroot"></div>' };
 
 function show(v) {
   view = v;
   if (v !== 'play' && v !== 'result') { R = null; clearInterval(tick); }
-  document.body.classList.toggle('playing', v === 'play');
+  if (runner) { runner.destroy(); runner = null; }
+  document.body.classList.toggle('playing', v === 'play' || v === 'runner');
   $('#view').innerHTML = VIEWS[v]();
+  if (v === 'runner') mountRunner();
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === v ? 'page' : 'false'));
   if (v !== 'play') window.scrollTo(0, 0);
 }
@@ -514,6 +549,7 @@ const ACTIONS = {
   daily: () => startRun('daily'),
   blitz: () => startRun('blitz'),
   boss: () => startRun('boss'),
+  runner: () => show('runner'),
   rowpick: () => { rowOpen = !rowOpen; show('home'); },
   quit: () => { if (R) { R.quit = true; endRun(false); } },
   again: () => startRun(lastRun.type, lastRun.row),

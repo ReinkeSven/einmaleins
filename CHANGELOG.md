@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.1.0] - 2026-11-21
+
+### Hinzugefügt
+- Monster-Hüpfen: Jump and Run nur zum Spaß. Auf das Monster mit der richtigen Zahl springen, über die anderen hinweg. Zählt nicht für Album, Statistik, XP oder Medaillen; gespeichert wird nur der Bestwert.
+- Plausible Falschantworten (`distractors()`) im Lernmodell, mit Tests
+
 ## [1.0.0] - 2026-11-21
 
 ### Hinzugefügt

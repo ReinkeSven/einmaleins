@@ -10,6 +10,7 @@ Lernspiel fürs kleine Einmaleins, vorwärts (`7 · 8`) und rückwärts (`56 : 8
 
 - **Spaced Repetition pro Aufgabe:** Leitner-Boxen 0 bis 5 mit Mindestabständen zwischen Aufstiegen; Ziehungsgewicht nach Box, Fehlerquote, Antwortzeit und Fälligkeit
 - **Modi:** Tagesrunde (15 Aufgaben), Blitz (60 s), Boss (10 schwierigste Aufgaben), Reihen-Training
+- **Monster-Hüpfen:** Jump and Run nur zum Spaß, auf das Monster mit der richtigen Zahl springen. Zählt nicht für die Statistik.
 - **Gamification:** Album als 10×10-Matrix (Übung, Bronze, Silber, Gold), 30 Medaillen, XP und Level, Streak
 - **Statistik:** Trefferquote, Antwortzeiten, Verlauf über 14 Tage, schwierigste Aufgaben
 - **Offline-fähig** und auf dem Home-Bildschirm installierbar
@@ -56,6 +57,7 @@ app/               ausgelieferte Web-App (wird so auf GitHub Pages veröffentlic
   css/styles.css
   js/model.js      Lernmodell, reine Funktionen ohne DOM
   js/app.js        Oberfläche und Spielablauf
+  js/runner.js     Monster-Hüpfen (Canvas)
   sw.js            Service Worker (Offline-Cache)
   manifest.webmanifest
   icons/

@@ -4,9 +4,9 @@
 
 const WORLD_H = 144;
 const GROUND = 120;
-const GRAVITY = 520;                         // px/s²
-const JUMP_V = Math.sqrt(2 * GRAVITY * 46);  // ca. 46 px Sprunghöhe
-const CUT = 0.45;                            // Sprung abkürzen beim Loslassen
+const GRAVITY = 420;                         // px/s²
+const JUMP_V = Math.sqrt(2 * GRAVITY * 60);  // volle Sprunghöhe ca. 60 px (Monster: 16 px)
+const MIN_V = Math.sqrt(2 * GRAVITY * 40);   // kurzes Tippen: mindestens ca. 40 px, reicht sicher über ein Monster
 const PX = 20;                               // x-Position der Figur
 const HIT = { pl: 3, pr: 13 };               // Hitbox der Figur relativ zum Sprite
 const MW = 16, MH = 16;                      // Monster-Sprite
@@ -241,7 +241,7 @@ export function createRunner(root, cfg) {
     if (p.buffer > 0 && (p.ground || p.coyote > 0)) {
       p.vy = -JUMP_V; p.ground = false; p.coyote = 0; p.buffer = 0; p.cut = false;
     }
-    if (!p.held && p.vy < 0 && !p.cut) { p.vy *= CUT; p.cut = true; }
+    if (!p.held && p.vy < 0 && !p.cut) { p.vy = Math.max(p.vy, -MIN_V); p.cut = true; }
     const prevY = p.y;
     p.vy += GRAVITY * dt;
     p.y += p.vy * dt;
@@ -258,7 +258,7 @@ export function createRunner(root, cfg) {
       else m.x -= G.speed * dt;
 
       if (m.state !== 'walk') continue;
-      const overlapX = PX + HIT.pr > m.x + 2 && PX + HIT.pl < m.x + MW - 2;
+      const overlapX = PX + HIT.pr > m.x + 3 && PX + HIT.pl < m.x + MW - 3;
       if (!overlapX) continue;
       const top = GROUND - MH + 1;
       if (p.vy > 0 && prevY <= top + 4 && p.y >= top) stomp(m);

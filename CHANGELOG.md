@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.2.2] - 2026-11-21
+
+### Geändert
+- Monster-Hüpfen: höher und länger springen (60 statt 46 px, weniger Schwerkraft); auch kurzes Tippen springt mindestens 40 px und damit sicher über ein Monster; etwas gnädigere seitliche Trefferzone
+
 ## [1.2.1] - 2026-11-21
 
 ### Geändert

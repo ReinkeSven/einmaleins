@@ -1,0 +1,22 @@
+{
+  "name": "einmaleins-arena",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Lernspiel fürs kleine Einmaleins als installierbare Web-App",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\"",
+    "lint": "eslint .",
+    "check": "npm run lint && npm test",
+    "start": "npx --yes http-server app -c-1 -p 8080"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0"
+  }
+}

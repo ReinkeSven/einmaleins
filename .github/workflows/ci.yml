@@ -27,9 +27,28 @@ jobs:
       - run: npm run lint
       - run: npm test
 
+  e2e:
+    name: Browser-Tests (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
   deploy:
     name: Deploy to GitHub Pages
-    needs: check
+    needs: [check, e2e]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

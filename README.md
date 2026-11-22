@@ -12,6 +12,7 @@ Lernspiel fürs kleine Einmaleins, vorwärts (`7 · 8`) und rückwärts (`56 : 8
 - **Modi:** Tagesrunde (15 Aufgaben), Blitz (60 s), Boss (10 schwierigste Aufgaben), Reihen-Training
 - **Monster-Hüpfen:** Jump and Run nur zum Spaß, auf das Monster mit der richtigen Zahl springen. Zählt nicht für die Statistik.
 - **Gamification:** Album als 10×10-Matrix (Übung, Bronze, Silber, Gold), 30 Medaillen, XP und Level, Streak
+- **Wald:** jede Aufgabe eine Pflanze, die mit dem Lernstand wächst; durstige Pflanzen und Gießrunde; Bewohner für Serien und Erfolge; Tag und Nacht
 - **Statistik:** Trefferquote, Antwortzeiten, Verlauf über 14 Tage, schwierigste Aufgaben
 - **Offline-fähig** und auf dem Home-Bildschirm installierbar
 
@@ -39,14 +40,27 @@ Daten gehen verloren, wenn die Website-Daten gelöscht werden oder das Gerät zu
 
 Details in [`app/js/model.js`](app/js/model.js).
 
+## Wald
+
+| Größe | Regel |
+|---|---|
+| Pflanzenstufe | Neu → Samen, Übung → Spross, Bronze → Jungbaum, Silber → Baum, Gold → blühend |
+| Haine | einer pro Reihe: 10 Bäume (n·1 … n·10, Tauschaufgaben teilen sich den Zustand) und 10 Blumen ((n·j) : n) |
+| Durst | geübt, aber länger als max(1 Tag, 2 × Wiederholungsintervall der Box) nicht wiederholt |
+| Gießrunde | bis zu 12 durstige Aufgaben, die am stärksten überfälligen zuerst |
+| Bewohner | aus Serie, Bossen, fehlerfreien Runden, Aufgabenzahl, Gold-Aufgaben und Gold-Reihen abgeleitet |
+
+Der Wald wird vollständig aus dem Lernstand berechnet und hat keinen eigenen Speicher. Details in [`app/js/forest-model.js`](app/js/forest-model.js).
+
 ## Entwicklung
 
 Voraussetzung: Node.js ab Version 20.
 
 ```bash
 npm install
-npm run check   # ESLint und Tests
-npm start       # lokaler Server auf http://localhost:8080
+npm run check      # ESLint und Unit-Tests
+npm run test:e2e   # Browser-Tests (einmalig vorher: npx playwright install chromium)
+npm start          # lokaler Server auf http://localhost:8080
 ```
 
 ### Aufbau
@@ -58,11 +72,15 @@ app/               ausgelieferte Web-App (wird so auf GitHub Pages veröffentlic
   js/model.js      Lernmodell, reine Funktionen ohne DOM
   js/app.js        Oberfläche und Spielablauf
   js/runner.js     Monster-Hüpfen (Canvas)
+  js/forest-model.js  Wald-Logik, reine Funktionen
+  js/forest.js     Wald-Panorama (Canvas)
+  js/pixel.js      gemeinsame Pixel-Art-Helfer
   sw.js            Service Worker (Offline-Cache)
   manifest.webmanifest
   icons/
-tests/             Unit-Tests für das Lernmodell (node:test)
-.github/workflows  CI (Lint, Tests) und Deployment auf GitHub Pages
+tests/             Unit-Tests für Lernmodell und Wald (node:test)
+tests/e2e/         Browser-Tests im Handy-Format (Playwright)
+.github/workflows  CI (Lint, Unit- und Browser-Tests) und Deployment auf GitHub Pages
 ```
 
 ### Release

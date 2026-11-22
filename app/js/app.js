@@ -5,6 +5,8 @@ import {
   record, xpGain, streak, lvl, rowGold, checkMedals, distractors,
 } from './model.js';
 import { createRunner } from './runner.js';
+import { STAGES, CREATURES, computeForest, snapshot, diff, thirstiest, featuredGrove } from './forest-model.js';
+import { createForestView, creatureIcon } from './forest.js';
 
 const KEY = 'einmaleins-arena-v1';
 const FUN_KEY = 'einmaleins-arena-fun'; // Monster-Hüpfen: nur Bestwert, getrennt von der Lernstatistik
@@ -28,6 +30,8 @@ let storageOK = false;
 let persisted = null;
 let ui = blankUi();
 let runner = null;
+let forestView = null;   // Wald-Tab oder Startseiten-Vorschau
+const queued = t => t === 'daily' || t === 'row' || t === 'water';
 function blankUi() { return { copyMsg: '', importMsg: '', importOk: false, pending: null, resetArm: false }; }
 
 /* ---------- Speichern ---------- */
@@ -81,6 +85,8 @@ function startRun(type, row) {
   R = { type, row, mode: S.mode, pool, answered: 0, correct: 0, combo: 0, maxCombo: 0, fast: 0, xp: 0, ms: 0,
     wrong: [], recent: [], requeued: {}, start: Date.now(), idx: 0, input: '', lock: false, showWrong: false, wait: null };
   lastRun = { type, row };
+  R.forestBefore = snapshot(S, Date.now());
+  if (type === 'water') R.queue = thirstiest(S, 12, Date.now());
   if (type === 'daily' || type === 'row') {
     const n = type === 'daily' ? 15 : 12;
     R.queue = [];
@@ -104,7 +110,7 @@ function startRun(type, row) {
 function nextQ() {
   if (!R) return;
   let k;
-  if (R.type === 'daily' || R.type === 'row') {
+  if (queued(R.type)) {
     if (R.idx >= R.queue.length) return endRun();
     k = R.queue[R.idx++];
   } else {
@@ -154,7 +160,7 @@ function submit() {
     R.wait = setTimeout(after, R.type === 'blitz' ? 200 : 300);
   } else {
     R.combo = 0; R.fast = 0; R.wrong.push(R.q.k);
-    if ((R.type === 'daily' || R.type === 'row') && !R.requeued[R.q.k]) {
+    if (queued(R.type) && !R.requeued[R.q.k]) {
       R.requeued[R.q.k] = 1;
       R.queue.splice(Math.min(R.queue.length, R.idx + 3), 0, R.q.k);
     }
@@ -189,9 +195,10 @@ function hud() {
   if (!R || view !== 'play') return;
   const info = $('#pinfo'), bar = $('#pbar'), combo = $('#combo');
   if (!info) return;
-  if (R.type === 'daily' || R.type === 'row') {
+  if (queued(R.type)) {
     const done = Math.max(0, R.idx - (R.lock ? 0 : 1));
-    info.innerHTML = `${done} / ${R.queue.length} <small>${R.type === 'row' ? R.row + 'er-Reihe' : 'Tagesrunde'}</small>`;
+    const name = { row: `${R.row}er-Reihe`, daily: 'Tagesrunde', water: 'Gießrunde' }[R.type];
+    info.innerHTML = `${done} / ${R.queue.length} <small>${name}</small>`;
     bar.style.width = (done / R.queue.length * 100) + '%';
   } else {
     const left = Math.max(0, R.deadline - Date.now());
@@ -234,6 +241,7 @@ function endRun(win) {
   }
   S.bestStreak = Math.max(S.bestStreak, streak(S));
   R.newMedals = checkMedals(S);
+  R.forestDiff = diff(R.forestBefore, snapshot(S, Date.now()));
   save();
   show('result');
 }
@@ -335,6 +343,7 @@ function vHome() {
   </button>
   ${needBackup ? '<div class="note"><b>Backup fällig.</b> Dein Fortschritt liegt nur auf diesem Handy. <button data-tab="more">Jetzt sichern</button></div>' : ''}
   ${!storageOK ? '<div class="note"><b>Speichern geht hier nicht.</b> Dieser Browser erlaubt keinen Speicher. Sichere deinen Fortschritt nach dem Spielen unter Backup.</div>' : ''}
+  ${forestPreview()}
   <section class="card">
     <div class="card-head"><h3>Album</h3>
       <div class="mini-seg"><button data-album="m" aria-pressed="${S.album === 'm'}">Mal</button><button data-album="d" aria-pressed="${S.album === 'd'}">Geteilt</button></div>
@@ -364,6 +373,8 @@ function vResult() {
     sub = r.wrong.length ? 'Die Fehler von heute kommen in den nächsten Tagen öfter dran.' : 'Ohne einen einzigen Fehler!';
   } else if (r.type === 'row') {
     title = `${r.row}er-Reihe geübt`; sub = `${acc} % richtig`;
+  } else if (r.type === 'water') {
+    title = r.quit ? 'Gießrunde abgebrochen' : 'Gießrunde geschafft'; sub = `${acc} % richtig`;
   } else if (r.type === 'blitz') {
     title = `${r.correct} richtig in 60 Sekunden`; sub = `Dein Rekord: ${S.best.blitz}`;
   } else {
@@ -371,7 +382,7 @@ function vResult() {
     sub = r.win ? 'Zeit: ' + sec(r.bossTime) : `Noch ${r.hp} Treffer hätten gefehlt. Versuch es nochmal.`;
   }
   const wrongU = [...new Set(r.wrong)];
-  const label = { daily: 'Tagesrunde', row: 'Reihe', blitz: 'Blitz', boss: 'Boss' }[r.type];
+  const label = { daily: 'Tagesrunde', row: 'Reihe', blitz: 'Blitz', boss: 'Boss', water: 'Gießrunde' }[r.type];
   return `<div class="hero"><span class="label">${label}</span><h1>${esc(title)}</h1><p>${esc(sub)}</p></div>
   ${r.isRecord ? '<span class="record">Neuer Rekord</span>' : ''}
   <div class="tiles">
@@ -381,6 +392,7 @@ function vResult() {
     <div class="stat"><b>+${r.xp}</b><span>XP, beste Kette ${r.maxCombo}</span></div>
   </div>
   ${r.newMedals.length ? `<section class="card"><div class="card-head"><h3>Neue Medaille${r.newMedals.length > 1 ? 'n' : ''}</h3></div><div class="new-medals">${r.newMedals.map((m, i) => `<div class="medal-card on" style="animation-delay:${i * 0.12}s">${medalSvg(m, true)}<b>${esc(m.name)}</b><small>${esc(m.desc)}</small></div>`).join('')}</div></section>` : ''}
+  ${forestCard(r.forestDiff)}
   ${wrongU.length ? `<section class="card"><div class="card-head"><h3>Kommen öfter dran</h3></div><ul class="list">${wrongU.map(k => `<li><span class="eq">${canon(k)}</span><span class="pill l${level(S.items[k])}">${LVNAME[level(S.items[k])]}</span></li>`).join('')}</ul></section>` : ''}
   <div class="btns"><button class="btn" data-act="home">Fertig</button><button class="btn primary" data-act="again">Nochmal</button></div>`;
 }
@@ -455,15 +467,73 @@ function vMore() {
   <p class="small">Speicher: ${storageOK ? 'verfügbar' : 'nicht verfügbar'}. Dauerhafter Speicher: ${persistText}</p>`;
 }
 
-const VIEWS = { home: vHome, stats: vStats, medals: vMedals, more: vMore, play: vPlay, result: vResult, runner: () => '<div id="runroot" class="runroot"></div>' };
+/* ---------- Wald ---------- */
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+
+function forestCard(d) {
+  if (!d || (!d.grown.length && !d.watered.length && !d.newCreatures.length)) return '';
+  const parts = [];
+  if (d.grown.length) parts.push(`${plural(d.grown.length, 'Pflanze ist', 'Pflanzen sind')} gewachsen`);
+  if (d.watered.length) parts.push(`${plural(d.watered.length, 'Pflanze', 'Pflanzen')} gegossen`);
+  const names = d.newCreatures.map(id => CREATURES.find(c => c.id === id).name);
+  return `<section class="card forest-card"><div class="card-head"><h3>Im Wald</h3></div>
+    <p class="forest-news">${parts.join(', ')}${parts.length ? '.' : ''}</p>
+    ${names.length ? `<p class="forest-news"><b>Neu eingezogen:</b> ${names.map(esc).join(', ')}</p>` : ''}
+    <button class="btn" data-tab="forest">Zum Wald</button></section>`;
+}
+
+function forestPreview() {
+  const f = computeForest(S, Date.now()), sm = f.summary;
+  const line = sm.growing ? `${sm.growing} von ${sm.total} Pflanzen wachsen · ${sm.blooming} blühen` : 'Noch alles Samen. Jede geübte Aufgabe lässt etwas wachsen.';
+  return `<button class="card forest-preview" data-tab="forest" aria-label="Zum Wald">
+    <div class="card-head"><h3>Dein Wald</h3>${sm.thirsty ? `<span class="pill thirst">${sm.thirsty} durstig</span>` : ''}</div>
+    <canvas class="forest-cv preview" id="forest-preview" aria-hidden="true"></canvas>
+    <span class="small">${line}</span></button>`;
+}
+
+function vForest() {
+  const f = computeForest(S, Date.now()), sm = f.summary, c = f.creatures;
+  const chips = f.groves.map(g => {
+    const thirsty = [...g.trees, ...g.flowers].some(p => p.thirsty);
+    return `<button data-grove="${g.n}" class="${g.gold ? 'g' : ''}${thirsty ? ' t' : ''}" aria-label="${g.n}er-Hain">${g.n}</button>`;
+  }).join('');
+  const stageRow = STAGES.map((name, i) => `<span><span class="pill l${i - 1}">${LVNAME[i - 1]}</span> ${name}</span>`).join('');
+  const creatureCards = CREATURES.map(cr => {
+    const n = c[cr.id];
+    return `<div class="medal-card ${n ? 'on' : 'off'}"><img class="creature" src="${creatureIcon(cr.id)}" alt=""><b>${esc(cr.name)}${n > 1 ? ` ×${n}` : ''}</b><small>${esc(cr.desc)}</small></div>`;
+  }).join('');
+  return `<div class="hero"><h1>Dein Wald</h1><p>${sm.growing} von ${sm.total} Pflanzen wachsen, ${sm.blooming} blühen. Bäume sind Malaufgaben, Blumen Teilaufgaben.</p></div>
+  <section class="card forest-main">
+    <canvas class="forest-cv" id="forest-cv" aria-label="Wald: wischen zum Bewegen, Pflanze antippen für Details"></canvas>
+    <div class="grove-nav" aria-label="Zu Hain springen">${chips}</div>
+  </section>
+  ${sm.thirsty
+    ? `<section class="card stack"><h3>${plural(sm.thirsty, 'Pflanze hat', 'Pflanzen haben')} Durst</h3><p class="small">Aufgaben, die länger nicht geübt wurden, lassen die Blätter hängen. Eine Gießrunde übt genau diese.</p><button class="btn primary" data-act="water">Gießrunde starten</button></section>`
+    : '<section class="card stack"><h3>Alles gegossen</h3><p class="small">Keine Pflanze hat gerade Durst. Weiterüben lässt den Wald wachsen.</p></section>'}
+  <section class="card stack"><h3>So wächst der Wald</h3><div class="legend stages">${stageRow}</div></section>
+  <section class="stack"><span class="label">Bewohner</span><div class="medals">${creatureCards}</div></section>`;
+}
+
+function mountForest(v) {
+  const f = computeForest(S, Date.now());
+  if (v === 'forest') {
+    forestView = createForestView($('#forest-cv'), { forest: f, focus: featuredGrove(f), onPlant: openSheet });
+  } else if (v === 'home') {
+    forestView = createForestView($('#forest-preview'), { forest: f, focus: featuredGrove(f), interactive: false });
+  }
+}
+
+const VIEWS = { home: vHome, forest: vForest, stats: vStats, medals: vMedals, more: vMore, play: vPlay, result: vResult, runner: () => '<div id="runroot" class="runroot"></div>' };
 
 function show(v) {
   view = v;
   if (v !== 'play' && v !== 'result') { R = null; clearInterval(tick); }
   if (runner) { runner.destroy(); runner = null; }
+  if (forestView) { forestView.destroy(); forestView = null; }
   document.body.classList.toggle('playing', v === 'play' || v === 'runner');
   $('#view').innerHTML = VIEWS[v]();
   if (v === 'runner') mountRunner();
+  if (v === 'forest' || v === 'home') mountForest(v);
   document.querySelectorAll('#tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === v ? 'page' : 'false'));
   if (v !== 'play') window.scrollTo(0, 0);
 }
@@ -550,6 +620,7 @@ const ACTIONS = {
   blitz: () => startRun('blitz'),
   boss: () => startRun('boss'),
   runner: () => show('runner'),
+  water: () => { if (thirstiest(S, 1, Date.now()).length) startRun('water'); },
   rowpick: () => { rowOpen = !rowOpen; show('home'); },
   quit: () => { if (R) { R.quit = true; endRun(false); } },
   again: () => startRun(lastRun.type, lastRun.row),
@@ -568,13 +639,14 @@ const ACTIONS = {
 document.addEventListener('click', e => {
   const t = e.target;
   if (t.id === 'sheet') { closeSheet(); return; }
-  const el = t.closest('[data-act],[data-tab],[data-mode],[data-album],[data-cell],[data-row]');
+  const el = t.closest('[data-act],[data-tab],[data-mode],[data-album],[data-cell],[data-row],[data-grove]');
   if (!el || el.closest('#pad')) return;
   const ds = el.dataset;
   if (ds.tab) { closeSheet(); ui = blankUi(); show(ds.tab); return; }
   if (ds.mode) { S.mode = ds.mode; save(); show('home'); return; }
   if (ds.album) { S.album = ds.album; save(); show('home'); return; }
   if (ds.cell) { openSheet(ds.cell); return; }
+  if (ds.grove) { if (forestView) forestView.focus(Number(ds.grove)); return; }
   if (ds.row) { closeSheet(); startRun('row', Number(ds.row)); return; }
   if (ds.act && ACTIONS[ds.act]) ACTIONS[ds.act]();
 });

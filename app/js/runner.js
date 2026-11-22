@@ -2,6 +2,8 @@
 // Retro-Pixel-Look: Die Welt wird in niedriger Auflösung (1 Einheit = 1 Pixel) gezeichnet
 // und mit ganzzahligem Faktor ohne Glättung hochskaliert. Welt 144 px hoch, Boden bei y = 120.
 
+import { makeBaker, drawDigits, numWidth } from './pixel.js';
+
 const WORLD_H = 144;
 const GROUND = 120;
 const GRAVITY = 420;                         // px/s²
@@ -88,31 +90,7 @@ const BUSH = [
   '.kggggGgggggggGk',
   'kggggggggGgggggk',
 ];
-const DIGITS = {
-  0: ['kkk', 'k.k', 'k.k', 'k.k', 'kkk'], 1: ['.k.', 'kk.', '.k.', '.k.', 'kkk'],
-  2: ['kkk', '..k', 'kkk', 'k..', 'kkk'], 3: ['kkk', '..k', 'kkk', '..k', 'kkk'],
-  4: ['k.k', 'k.k', 'kkk', '..k', '..k'], 5: ['kkk', 'k..', 'kkk', '..k', 'kkk'],
-  6: ['kkk', 'k..', 'kkk', 'k.k', 'kkk'], 7: ['kkk', '..k', '.k.', '.k.', '.k.'],
-  8: ['kkk', 'k.k', 'kkk', 'k.k', 'kkk'], 9: ['kkk', 'k.k', 'kkk', '..k', 'kkk'],
-  '+': ['...', '.k.', 'kkk', '.k.', '...'],
-};
-
-// Pixelkarte einmal in ein kleines Canvas backen (optional gespiegelt / umgefärbt)
-const bakeCache = new Map();
-function bake(map, flip = false, recolor = null) {
-  const key = map.join('|') + flip + (recolor ? JSON.stringify(recolor) : '');
-  if (bakeCache.has(key)) return bakeCache.get(key);
-  const c = document.createElement('canvas');
-  c.width = map[0].length; c.height = map.length;
-  const x = c.getContext('2d');
-  map.forEach((row, r) => [...row].forEach((ch, i) => {
-    if (ch === '.') return;
-    x.fillStyle = (recolor && recolor[ch]) || PAL[ch];
-    x.fillRect(flip ? row.length - 1 - i : i, r, 1, 1);
-  }));
-  bakeCache.set(key, c);
-  return c;
-}
+const bake = makeBaker(PAL);
 
 const CHEERS = ['ZACK!', 'BÄMM!', 'PLOPP!', 'STARK!', 'PLATT!'];
 const OUCH = ['AUTSCH!', 'NOPE!', 'HOPPLA!', 'UFF!'];
@@ -141,9 +119,8 @@ export function createRunner(root, cfg) {
   let G;
 
   function resize() {
-    const r = cv.getBoundingClientRect();
     dpr = Math.min(3, window.devicePixelRatio || 1);
-    W = r.width; H = r.height;
+    W = cv.clientWidth; H = cv.clientHeight;
     const Wd = Math.round(W * dpr), Hd = Math.round(H * dpr);
     cv.width = Wd; cv.height = Hd;
     s = Math.max(1, Math.floor(Math.min(Hd / 150, Wd / 108)));  // ganzzahlige Skalierung
@@ -316,16 +293,7 @@ export function createRunner(root, cfg) {
   const R = Math.round;
   const put = (img, x, y) => lx.drawImage(img, R(x), R(y));
 
-  function drawNum(str, x, y, color, scale = 1) {
-    const rc = { k: color };
-    let cx = x;
-    for (const ch of String(str)) {
-      const g = DIGITS[ch];
-      if (g) lx.drawImage(bake(g, false, rc), R(cx), R(y), 3 * scale, 5 * scale);
-      cx += 4 * scale;
-    }
-  }
-  const numWidth = (str, scale = 1) => String(str).length * 4 * scale - scale;
+  const drawNum = (str, x, y, color, scale = 1) => drawDigits(lx, bake, str, x, y, color, scale);
 
   function drawWorld() {
     lx.imageSmoothingEnabled = false;

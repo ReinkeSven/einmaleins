@@ -2,6 +2,19 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.3.0] - 2026-11-22
+
+### Hinzugefügt
+- Wald: Jede Aufgabe ist eine Pflanze, die mit dem Lernstand wächst (Samen, Spross, Jungbaum, Baum, blühend). Bäume für Malaufgaben, Blumen für Teilaufgaben, ein Hain pro Reihe.
+- Durstige Pflanzen für Aufgaben, die länger nicht geübt wurden; Gießrunde übt genau diese. Pflanzen sterben nie.
+- Bewohner durch Fleiß und Erfolge: Eichhörnchen, Fuchs, Hase, Vögel, Pilze, Schmetterlinge, Bach, Hirsch
+- Pixel-Panorama zum Wischen mit Tag, Dämmerung und Nacht nach Uhrzeit; Pflanze antippen zeigt die Aufgabe
+- Wald-Vorschau auf der Startseite und Wald-Karte im Rundenergebnis
+- E2E-Tests mit Playwright (Handy-Format) für alle Hauptabläufe, in der CI vor dem Deployment
+
+### Geändert
+- Gemeinsame Pixel-Helfer in `pixel.js` für Monster-Hüpfen und Wald
+
 ## [1.2.2] - 2026-11-21
 
 ### Geändert

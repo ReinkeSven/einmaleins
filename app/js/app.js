@@ -504,7 +504,7 @@ function vForest() {
     return `<button data-grove="${g.n}" class="${g.gold ? 'g' : ''}${thirsty ? ' t' : ''}" aria-label="${g.n}er-Hain">${g.n}</button>`;
   }).join('');
   const stageRow = STAGES.map((name, i) => `<span><span class="pill l${i - 1}">${LVNAME[i - 1]}</span> ${name}</span>`).join('');
-  const creatureCards = CREATURES.map(cr => {
+  const creatureCards = CREATURES.filter(cr => !cr.seasonal || isChristmasSeason(new Date())).map(cr => {
     const n = c[cr.id];
     return `<div class="medal-card ${n ? 'on' : 'off'}"><img class="creature" src="${creatureIcon(cr.id)}" alt=""><b>${esc(cr.name)}${n > 1 ? ` ×${n}` : ''}</b><small>${esc(cr.desc)}</small></div>`;
   }).join('');

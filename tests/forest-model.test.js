@@ -188,3 +188,46 @@ test('Alte Spielstände ohne Motiv-Felder bleiben gültig', () => {
   assert.deepEqual(s.themes, {});
   assert.equal(s.forestTheme, 'auto');
 });
+
+test('Neue Bewohner: Igel, Frosch, Specht, Marienkäfer, Eule, Biber, Bär, Einhorn', () => {
+  const S = freshState(T0);
+  const c0 = creatures(S, T0);
+  for (const id of ['igel', 'frosch', 'specht', 'marienkaefer', 'eule', 'biber', 'baer', 'einhorn']) assert.equal(c0[id], 0, id);
+  Object.assign(S, { bosses: 5, total: 1000, bestStreak: 14 });
+  S.best.blitz = 25;
+  for (const k of Object.keys(S.items).filter(k => k[0] === 'd')) Object.assign(S.items[k], { b: 2, c: 2, t: 3000, l: T0 });
+  Object.keys(S.items).slice(0, 50).forEach(k => Object.assign(S.items[k], gold));
+  const c = creatures(S, T0);
+  for (const id of ['igel', 'frosch', 'specht', 'eule', 'biber']) assert.equal(c[id], 1, id);
+  assert.equal(c.marienkaefer, 3);
+  assert.equal(c.einhorn, 0);
+  for (const it of Object.values(S.items)) Object.assign(it, gold);
+  const all = creatures(S, T0);
+  assert.equal(all.einhorn, 1);
+  assert.equal(all.baer, 1);
+});
+
+test('Bär ab 3 goldenen Reihen, Eule bleibt nach abgerissener Serie', () => {
+  const S = freshState(T0);
+  for (const n of [2, 5]) for (const k of poolFor('mix', n)) Object.assign(S.items[k], gold);
+  assert.equal(creatures(S, T0).baer, 0);
+  for (const k of poolFor('mix', 9)) Object.assign(S.items[k], gold);
+  assert.equal(creatures(S, T0).baer, 1);
+  S.bestStreak = 14;                                             // aktuelle Serie 0
+  assert.equal(creatures(S, T0).eule, 1);
+});
+
+test('Weihnachtsmann nur in der Weihnachtszeit und nur nach der heutigen Tagesrunde', () => {
+  const S = freshState(T0);
+  const dec = new Date(2026, 11, 10, 18).getTime();
+  const nov = new Date(2026, 10, 10, 18).getTime();
+  assert.equal(creatures(S, dec).weihnachtsmann, 0);
+  S.days[dkey(new Date(dec))] = { n: 15, c: 15, ms: 1, r: 1, daily: 1 };
+  S.days[dkey(new Date(nov))] = { n: 15, c: 15, ms: 1, r: 1, daily: 1 };
+  assert.equal(creatures(S, dec).weihnachtsmann, 1);
+  assert.equal(creatures(S, nov).weihnachtsmann, 0);
+  assert.equal(creatures(S, dec + DAY).weihnachtsmann, 0);        // am nächsten Tag erst nach der Runde
+  const before = snapshot(S, dec + DAY);
+  S.days[dkey(new Date(dec + DAY))] = { n: 15, c: 15, ms: 1, r: 1, daily: 1 };
+  assert.deepEqual(diff(before, snapshot(S, dec + DAY)).newCreatures, ['weihnachtsmann']);
+});

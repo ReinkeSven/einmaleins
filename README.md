@@ -48,7 +48,8 @@ Details in [`app/js/model.js`](app/js/model.js).
 | Haine | einer pro Reihe: 10 Bäume (n·1 … n·10, Tauschaufgaben teilen sich den Zustand) und 10 Blumen ((n·j) : n) |
 | Durst | geübt, aber länger als max(1 Tag, 2 × Wiederholungsintervall der Box) nicht wiederholt |
 | Gießrunde | bis zu 12 durstige Aufgaben, die am stärksten überfälligen zuerst |
-| Bewohner | aus Serie, Bossen, fehlerfreien Runden, Aufgabenzahl, Gold-Aufgaben und Gold-Reihen abgeleitet |
+| Bewohner | aus Serie, Bossen, fehlerfreien Runden, Aufgabenzahl, Blitz-Rekord, Gold-Aufgaben und Gold-Reihen abgeleitet (16 Tiere bis zum Einhorn bei 155 × Gold) |
+| Weihnachtsmann | in der Weihnachtszeit, sobald die heutige Tagesrunde geschafft ist |
 | Weihnachtswald | automatisch vom 1. Dezember bis 6. Januar (Auswahl „Automatisch“) |
 | Motive | Zauberwald: 60 wachsende Pflanzen ohne Durst · Süßigkeitenwald: 10 fehlerfreie Tagesrunden · Kirschblüten-Garten: 4 Reihen Gold · Korallenriff: 35 im Blitz · Weltraumgarten: alle 155 mindestens Silber |
 

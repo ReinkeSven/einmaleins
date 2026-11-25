@@ -19,6 +19,7 @@ export const groveX = n => PAD + (n - 1) * GROVE_W;
 const PAL = {
   k: '#000000', w: '#fcfcfc', o: '#c8702a', O: '#e8842e', b: '#a0642c', a: '#e0cfa0', r: '#e0302a',
   B: '#2a7ae8', c: '#bfe4ff', y: '#ffd84a', g: '#9aa4b0', G: '#5a5a6a', p: '#ff8ad0', t: '#6af0e0',
+  n: '#5a3a1e', e: '#3ab040', E: '#1e7a2a', u: '#8a6a4a', U: '#d8c098', R: '#a01818',
 };
 const bake = makeBaker(PAL);
 const FADED = '#cbbf93', STEM_DRY = '#8a8a40';
@@ -155,11 +156,42 @@ const SNOWMAN = [
 ];
 const CANE = ['.rww', 'w..r', 'r..w', '...r', '...w', '...r', '...w', '...r', '...w', '...r', '...w', '...r'];
 
+const HEDGEHOG = ['...n.n.n..', '..nnnnnnn.', '.nnnnnnnaa', '.nnnnnnaak', '..b..b....'];
+const FROG = [
+  ['.ww.ww.', '.wk.wk.', 'eeeeeee', 'eEeeeEe', 'ee...ee'],
+  ['.ww.ww.', '.wk.wk.', 'eeeeeee', 'eEeeeEe', '.e...e.'],
+];
+const WOODPECKER = ['.rr..', 'rrkO.', '.kk..', '.kwk.', '.kwk.', '.kkk.', '..k..', '..k..'];
+const LADYBUG = ['.kkk.', 'rkrkr', 'rrkrr'];
+const OWL = [
+  ['u.....u', 'uuuuuuu', 'uyyuyyu', 'ukyukyu', 'uuuOuuu', 'uUUUUUu', 'uUUUUUu', '.u...u.'],
+  ['u.....u', 'uuuuuuu', 'uuuuuuu', 'ukkukku', 'uuuOuuu', 'uUUUUUu', 'uUUUUUu', '.u...u.'],
+];
+const BEAVER = ['.....bbbb.', '....bbbkbw', 'GGbbbbbbb.', 'GGbbbbbbb.', '..b.b.b.b.'];
+const BEAR = [
+  ['.........n.n..', '........nnnnn.', '........nnknna', '.nnnnnnnnnnnnk', 'nnnnnnnnnnnnn.', 'nnnnnnnnnnnnn.', '.nnnnnnnnnnnn.', '.nn.nn...nn.nn', '.nn.nn...nn.nn', '.kk.kk...kk.kk'],
+  ['.........n.n..', '........nnnnn.', '........nnknna', '.nnnnnnnnnnnnk', 'nnnnnnnnnnnnn.', 'nnnnnnnnnnnnn.', '.nnnnnnnnnnnn.', '..nn.nn.nn.nn.', '..nn.nn.nn.nn.', '..kk.kk.kk.kk.'],
+];
+const UNICORN = [
+  '..y..........', '..y..........', '.wwwp........', 'wkwwtp.......', '.wwwwyp......',
+  '...wwwwwwwwwp', '...wwwwwwwwwt', '...wwwwwwwww.', '...w.w...w.w.', '...k.k...k.k.',
+];
+const SLEIGH = [
+  '........rrw.....', '.......rrrr.....', '.......wwww.....', '.......aka......', '......wwwwrr.bb.',
+  'y.....wwwrrrbbbb', 'yrrrrrrrrrrrrrry', '.yrrrrrrrrrrrry.', 'yyyyyyyyyyyyyyy.',
+];
+const FLY_DEER = [
+  ['a.a......', '.bb......', 'nkbbbbbb.', '..bbbbbbb', '..b.b..b.', '.b...b..b'],
+  ['a.a......', '.bb......', 'nkbbbbbb.', '..bbbbbbb', '...bb.bb.', '.........'],
+];
+
 /** Sprites für die Bewohner-Liste in der App (als Bilder) */
 export function creatureIcon(id) {
   const maps = {
     eichhoernchen: SQUIRREL, fuchs: FOX[0], hase: RABBIT, voegel: BIRD[0], pilze: MUSHROOM, hirsch: DEER,
     schmetterlinge: ['y.y', '.k.'], bach: ['....BB..', '..BBccBB', 'BBcc..BB', 'cc......'],
+    igel: HEDGEHOG, frosch: FROG[0], specht: WOODPECKER, marienkaefer: LADYBUG, eule: OWL[0],
+    biber: BEAVER, baer: BEAR[0], einhorn: UNICORN, weihnachtsmann: SLEIGH,
   };
   return bake(maps[id]).toDataURL();
 }
@@ -314,6 +346,7 @@ export function createForestView(canvas, opt) {
     if (showAt(st.moon, ph)) drawMoon(oy);
     if (st.deco.includes('xmasStar') && ph === 'night' && isChristmasEve(date)) drawBigStar(t, oy);
     if (showAt(st.fireflies, ph)) drawFireflies(t);
+    if (forest.creatures.weihnachtsmann) drawSanta(t, oy);
     drawParticles(t, oy);
     lx.restore();
 
@@ -501,11 +534,86 @@ export function createForestView(canvas, opt) {
       const bx = ((t * (14 + i * 3) + i * 300) % (WORLD_W + 60)) - 30;
       put(bake(flyer[Math.floor(t * 5 + i) % 2], st.bird === 'fish'), bx, 18 + i * 7 + Math.sin(t * 2 + i) * 2);
     }
+    drawNewCreatures(t, c);
     const blooming = layout.filter(p => p.stage === 4 && p.type === 'tree');
     for (let i = 0; i < c.schmetterlinge; i++) {
       const anchor = blooming.length ? blooming[(i * 7) % blooming.length] : { x: groveX(1 + i) + 40, y: GY - 20 };
       const bx = anchor.x + 6 + Math.sin(t * 1.7 + i) * 8, by = anchor.y + 2 + Math.cos(t * 2.3 + i) * 5;
       put(bake(Math.floor(t * 8 + i) % 2 ? ['y.y', '.k.'] : ['.y.', '.k.'], false, { y: st.petals[i % 4] }), bx, by);
+    }
+  }
+
+  // Hin und her laufen zwischen x0 und x0 + range; liefert [x, nach rechts?]
+  const patrol = (t, x0, range, speed) => {
+    const pos = (t * speed) % (2 * range), right = pos < range;
+    return [x0 + (right ? pos : 2 * range - pos), right];
+  };
+  const treeIn = (n, minStage) => layout.find(p => p.type === 'tree' && p.stage >= minStage && p.x >= groveX(n) && p.x < groveX(n) + GROVE_W);
+
+  function drawNewCreatures(t, c) {
+    const brookY = GY + 20;
+    if (c.igel) {
+      const [x, right] = patrol(t, groveX(6) + 34, 70, 4);
+      put(bake(HEDGEHOG, !right), x, GY + 6 - HEDGEHOG.length + 4);
+    }
+    if (c.frosch) {
+      const hop = Math.floor(t * 0.8) % 3 === 0 ? Math.round(Math.abs(Math.sin(t * 6)) * 4) : 0;
+      const x = groveX(4) + 70, y = (c.bach ? brookY - 3 : GY + 8) - hop;
+      put(bake(FROG[hop ? 1 : 0]), x, y);
+    }
+    if (c.specht) {
+      const tr = treeIn(9, 3);
+      if (tr) {
+        const peck = Math.floor(t * 6) % 4 === 0 ? -1 : 0;
+        put(bake(WOODPECKER), tr.x + Math.floor(tr.img.width / 2) + 2 + peck, GY - 13);
+      }
+    }
+    if (c.marienkaefer) {
+      const flowers = layout.filter(p => p.type === 'flower' && p.stage >= 3).slice(0, 30);
+      for (let i = 0; i < c.marienkaefer; i++) {
+        const f = flowers.length ? flowers[(i * 11) % flowers.length] : { x: groveX(2 + i * 3) + 40, y: GY + 4, img: { width: 5 } };
+        put(bake(LADYBUG), f.x + Math.floor(f.img.width / 2) - 2, f.y - 2);
+      }
+    }
+    if (c.eule) {
+      const tr = treeIn(3, 3);
+      const blink = Math.floor(t * 2) % 7 === 0 ? 1 : 0;
+      if (tr) put(bake(OWL[blink]), tr.x + Math.floor(tr.img.width / 2) - 3, tr.y - OWL[0].length + 2);
+      else put(bake(OWL[blink]), groveX(3) + 9, GY - 28);
+    }
+    if (c.biber) {
+      const [x, right] = patrol(t, groveX(7) + 40, 40, 5);
+      put(bake(BEAVER, right), x, (c.bach ? brookY - 3 : GY + 8));
+    }
+    if (c.baer) {
+      const [x, right] = patrol(t, groveX(9) + 30, 80, 5);
+      put(bake(BEAR[Math.floor(t * 3) % 2], !right), x, GY - BEAR[0].length + 4);
+    }
+    if (c.einhorn) {
+      const [x, right] = patrol(t, groveX(10) + 30, 90, 7);
+      put(bake(UNICORN, right), x, GY - UNICORN.length + 4);
+      for (let i = 0; i < 5; i++) {
+        if (Math.sin(t * 4 + i * 1.7) < 0.3) continue;
+        dot(x + (hash(`u${i}${Math.floor(t * 2)}`) % 16) - 2, GY - 14 + (hash(`v${i}${Math.floor(t * 2)}`) % 12), ['#ff8ad0', '#6af0e0', '#ffd84a', '#ffffff'][i % 4]);
+      }
+    }
+  }
+
+  // Weihnachtsmann mit Schlitten und zwei Rentieren, fliegt in Bildschirmkoordinaten über den Himmel
+  function drawSanta(t, oy) {
+    const span = LW + 90;
+    const x = Math.round(LW + 10 - ((t * 22) % span));
+    const y = Math.round(-oy + 18 + Math.sin(t * 1.5) * 3);
+    const f = Math.floor(t * 5) % 2;
+    lx.drawImage(bake(FLY_DEER[f], false, { n: '#e0302a' }), x, y);
+    lx.drawImage(bake(FLY_DEER[1 - f]), x + 11, y + 1);
+    lx.fillStyle = '#e0cfa0';                                   // Zügel
+    for (let i = 0; i < 6; i++) lx.fillRect(x + 20 + i, y + 3 + Math.floor(i / 3), 1, 1);
+    lx.drawImage(bake(SLEIGH), x + 25, y - 2);
+    for (let i = 1; i < 10; i++) {                              // Glitzerspur
+      if ((i + Math.floor(t * 8)) % 3) continue;
+      lx.fillStyle = i % 2 ? '#ffd84a' : '#ffffff';
+      lx.fillRect(x + 40 + i * 3, y + 5 + Math.round(Math.sin(i + t * 3)), 1, 1);
     }
   }
 

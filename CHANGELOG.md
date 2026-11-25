@@ -2,6 +2,12 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.5.0] - 2026-11-25
+
+### Hinzugefügt
+- Acht neue Bewohner zum Freispielen: Igel (5 Bosse), Frosch (25 im Blitz), Specht (50 Aufgaben Gold), Marienkäfer (alle Teilaufgaben Bronze), Eule (einmal 14 Tage Serie), Biber (1000 Aufgaben), Bär (3 Reihen Gold), Einhorn (alle 155 Aufgaben Gold)
+- Weihnachtsmann mit Schlitten und zwei Rentieren (Rudolph vorneweg): fliegt in der Weihnachtszeit über den Himmel, sobald die Tagesrunde des Tages geschafft ist
+
 ## [1.4.0] - 2026-11-25
 
 ### Hinzugefügt

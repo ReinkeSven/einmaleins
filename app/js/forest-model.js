@@ -1,7 +1,7 @@
 // Wald-Logik: reine Funktionen ohne DOM. Der Wald wird vollständig aus dem Lernstand S berechnet,
 // gespeichert werden nur Motiv-Auswahl und freigeschaltete Motive. Pflanzen wachsen mit dem Können, Bewohner kommen durch Fleiß und Erfolge.
 
-import { DAY, IVL, level, streak, rowGold } from './model.js';
+import { DAY, IVL, level, streak, rowGold, dkey } from './model.js';
 
 /** Wachstumsstufen: 0 Samen, 1 Spross, 2 junger Baum, 3 großer Baum, 4 blühend */
 export const STAGES = ['Samen', 'Spross', 'Jungbaum', 'Baum', 'blühend'];
@@ -56,7 +56,26 @@ export const CREATURES = [
   { id: 'schmetterlinge', name: 'Schmetterlinge', desc: 'Je 10 goldene Aufgaben ein Schmetterling (bis 8)', count: S => Math.min(8, Math.floor(Object.values(S.items).filter(it => level(it) === 3).length / 10)) },
   { id: 'bach', name: 'Bach', desc: '500 Aufgaben gelöst', count: S => (S.total >= 500 ? 1 : 0) },
   { id: 'hirsch', name: 'Hirsch', desc: 'Eine Reihe komplett auf Gold (je Hain ein Hirsch)', count: S => [...Array(10)].filter((_, i) => rowGold(S, i + 1)).length },
+  { id: 'igel', name: 'Igel', desc: '5 Bosse besiegen', count: S => (S.bosses >= 5 ? 1 : 0) },
+  { id: 'frosch', name: 'Frosch', desc: '25 richtige in einer Blitzrunde', count: S => (S.best.blitz >= 25 ? 1 : 0) },
+  { id: 'specht', name: 'Specht', desc: '50 Aufgaben auf Gold', count: S => (countLevel(S, 3) >= 50 ? 1 : 0) },
+  { id: 'marienkaefer', name: 'Marienkäfer', desc: 'Alle Teilaufgaben mindestens auf Bronze', count: S => (Object.keys(S.items).filter(k => k[0] === 'd').every(k => level(S.items[k]) >= 1) ? 3 : 0) },
+  { id: 'eule', name: 'Eule', desc: 'Einmal 14 Tage am Stück üben', count: S => (S.bestStreak >= 14 ? 1 : 0) },
+  { id: 'biber', name: 'Biber', desc: '1000 Aufgaben gelöst', count: S => (S.total >= 1000 ? 1 : 0) },
+  { id: 'baer', name: 'Bär', desc: '3 Reihen komplett auf Gold', count: S => (goldRowCount(S) >= 3 ? 1 : 0) },
+  { id: 'einhorn', name: 'Einhorn', desc: 'Alle 155 Aufgaben auf Gold (legendär)', count: S => (countLevel(S, 3) === 155 ? 1 : 0) },
+  {
+    id: 'weihnachtsmann', name: 'Weihnachtsmann', seasonal: true,
+    desc: 'In der Weihnachtszeit: fliegt vorbei, sobald heute die Tagesrunde geschafft ist',
+    count: (S, now) => {
+      const d = new Date(now);
+      return isChristmasSeason(d) && S.days[dkey(d)] && S.days[dkey(d)].daily ? 1 : 0;
+    },
+  },
 ];
+
+function countLevel(S, l) { return Object.values(S.items).filter(it => level(it) === l).length; }
+function goldRowCount(S) { return [...Array(10)].filter((_, i) => rowGold(S, i + 1)).length; }
 
 export function creatures(S, now) {
   const out = {};
@@ -126,7 +145,7 @@ export function isChristmasEve(date) {
   return (m === 11 && d >= 24) || (m === 0 && d <= 6);
 }
 
-const goldRows = S => [...Array(10)].filter((_, i) => rowGold(S, i + 1)).length;
+const goldRows = goldRowCount;
 
 /**
  * Freispielbare Motive, aufsteigend schwerer. progress liefert [aktuell, Ziel];

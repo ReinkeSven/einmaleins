@@ -1,5 +1,5 @@
 // End-to-End-Tests der Hauptabläufe im Handy-Format
-import { test, expect, seed, seededState, readState, playRound } from './helpers.js';
+import { test, expect, seed, seededState, maxedState, readState, playRound } from './helpers.js';
 
 test.describe('Lernen', () => {
   test('Startseite zeigt Album, Modi und Wald-Vorschau', async ({ page }) => {
@@ -211,6 +211,37 @@ test.describe('Motive', () => {
       }
     });
   }
+});
+
+test.describe('Bewohner', () => {
+  test('Mit allem freigespielt sind alle Tiere da und zeichnen fehlerfrei', async ({ page }) => {
+    const now = new Date(2026, 10, 25, 12);
+    await page.clock.setFixedTime(now);
+    await seed(page, maxedState(now.getTime()));
+    await page.goto('/');
+    await page.click('#tabs [data-tab=forest]');
+    for (const name of ['Igel', 'Frosch', 'Specht', 'Marienkäfer ×3', 'Eule', 'Biber', 'Bär', 'Einhorn']) {
+      await expect(page.locator('.medal-card.on', { hasText: name })).toBeVisible();
+    }
+    await expect(page.locator('.medal-card.off')).toHaveCount(0);
+    await expect(page.locator('.medal-card', { hasText: 'Weihnachtsmann' })).toHaveCount(0); // nicht in der Saison
+    for (const n of [3, 4, 6, 7, 9, 10]) { await page.click(`[data-grove="${n}"]`); await page.waitForTimeout(250); }
+  });
+
+  test('Weihnachtsmann kommt im Dezember nach der Tagesrunde', async ({ page }) => {
+    const now = new Date(2026, 11, 10, 17);
+    await page.clock.setFixedTime(now);
+    await seed(page, seededState(now.getTime()));
+    await page.goto('/');
+    await page.click('#tabs [data-tab=forest]');
+    await expect(page.locator('.medal-card.off', { hasText: 'Weihnachtsmann' })).toBeVisible();
+    await page.click('#tabs [data-tab=home]');
+    await page.click('[data-act=daily]');
+    await playRound(page);
+    await expect(page.locator('.forest-card')).toContainText('Weihnachtsmann');
+    await page.click('.forest-card [data-tab=forest]');
+    await expect(page.locator('.medal-card.on', { hasText: 'Weihnachtsmann' })).toBeVisible();
+  });
 });
 
 test.describe('Spaß und Technik', () => {

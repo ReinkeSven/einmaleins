@@ -88,3 +88,13 @@ export async function playRound(page, { wrongAt = [] } = {}) {
   await expect(page.locator('.hero h1')).toBeVisible();
   return i;
 }
+
+/** Spielstand mit allem: alle Aufgaben Gold, alle Bewohner, heutige Tagesrunde erledigt */
+export function maxedState(now = Date.now()) {
+  const S = seededState(now);
+  for (const it of Object.values(S.items)) Object.assign(it, { b: 5, c: 9, w: 3, t: 1800, l: now - HOUR });
+  for (let i = 0; i <= 30; i++) S.days[dkey(new Date(now - i * DAY))] = { n: 20, c: 20, ms: 40000, r: 1, daily: 1 };
+  Object.assign(S, { total: 2400, perfect: 12, bosses: 6, bestStreak: 31 });
+  S.best.blitz = 41;
+  return S;
+}

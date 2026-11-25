@@ -62,6 +62,15 @@ export function migrate(o) {
   return s;
 }
 
+/** Dauer kindgerecht: „20 Minuten“, „20 Stunden“, „3 Tage“; dativ für „nach 3 Tagen“ */
+export function durationText(ms, dativ = false) {
+  if (ms <= 0) return 'keine Pause';
+  if (ms < HOUR) { const m = Math.round(ms / MIN); return `${m} ${m === 1 ? 'Minute' : 'Minuten'}`; }
+  if (ms < DAY) { const h = Math.round(ms / HOUR); return `${h} ${h === 1 ? 'Stunde' : 'Stunden'}`; }
+  const d = Math.round(ms / DAY);
+  return `${d} ${d === 1 ? 'Tag' : dativ ? 'Tagen' : 'Tage'}`;
+}
+
 /* ---------- Backup ---------- */
 const PREFIX = 'EMX1:';
 export function encodeBackup(S) {

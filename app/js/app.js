@@ -1,6 +1,6 @@
 // UI der Einmaleins-Arena: Ansichten, Spielablauf, Eingaben, Speichern.
 import {
-  DAY, LVNAME, MEDALS, dkey, parse, freshState, migrate, encodeBackup, decodeBackup,
+  DAY, GAP, FAST_MS, GOLD_MS, durationText, LVNAME, MEDALS, dkey, parse, freshState, migrate, encodeBackup, decodeBackup,
   level, hardness, pickWeighted, poolFor, weakest, makeQ, canon, canonShort, dayRec,
   record, xpGain, streak, lvl, rowGold, checkMedals, distractors,
 } from './model.js';
@@ -350,7 +350,7 @@ function vHome() {
   ${!storageOK ? '<div class="note"><b>Speichern geht hier nicht.</b> Dieser Browser erlaubt keinen Speicher. Sichere deinen Fortschritt nach dem Spielen unter Backup.</div>' : ''}
   ${forestPreview()}
   <section class="card">
-    <div class="card-head"><h3>Album</h3>
+    <div class="card-head"><h3>Album <button class="help-btn" data-tab="help" aria-label="So funktioniert's">?</button></h3>
       <div class="mini-seg"><button data-album="m" aria-pressed="${S.album === 'm'}">Mal</button><button data-album="d" aria-pressed="${S.album === 'd'}">Geteilt</button></div>
     </div>
     ${albumHtml()}
@@ -556,7 +556,59 @@ function mountForest(v) {
   }
 }
 
-const VIEWS = { home: vHome, forest: vForest, stats: vStats, medals: vMedals, more: vMore, play: vPlay, result: vResult, runner: () => '<div id="runroot" class="runroot"></div>' };
+/* ---------- So funktioniert's ---------- */
+function vHelp() {
+  const sec = ms => ms / 1000;
+  const pill = l => `<span class="pill l${l}">${LVNAME[l]}</span>`;
+  const step = (when, what, l) => `<li><span class="when">${when}</span><span>${what}</span>${l !== undefined ? pill(l) : ''}</li>`;
+  return `<div class="hero"><button class="btn back" data-tab="home">← Zurück</button><h1>So funktioniert's</h1>
+    <p>Die App merkt sich jede einzelne Aufgabe und übt mit dir genau das, was noch nicht sitzt.</p></div>
+
+  <section class="card stack help"><h3>Fünf Farben</h3>
+    <ul class="list">
+      <li><span>${pill(-1)}</span><span>Noch nie geübt</span></li>
+      <li><span>${pill(0)}</span><span>Am Anfang oder nach Fehlern</span></li>
+      <li><span>${pill(1)}</span><span>Zweimal richtig, die Aufgabe kennst du</span></li>
+      <li><span>${pill(2)}</span><span>Sitzt schon gut, auch nach einer Pause</span></li>
+      <li><span>${pill(3)}</span><span>Sitzt richtig fest und kommt schnell</span></li>
+    </ul>
+  </section>
+
+  <section class="card stack help"><h3>So kommst du zu Gold</h3>
+    <p class="small">Jede richtige Antwort bringt die Aufgabe eine Stufe höher, aber nur mit Pausen dazwischen. Erst dann weißt du sie wirklich und nicht nur gerade eben.</p>
+    <ol class="list path">
+      ${step('Heute', 'zweimal richtig', 1)}
+      ${step(`${durationText(GAP[2])} später`, 'nochmal richtig', 2)}
+      ${step(`Frühestens nach ${durationText(GAP[3], true)}`, `richtig und schnell (im Schnitt unter ${sec(GOLD_MS)} Sekunden)`, 3)}
+      ${step(`Nach ${durationText(GAP[4], true)}`, 'nochmal richtig: Gold sitzt jetzt richtig fest')}
+    </ol>
+    <p class="small">Gold geht also frühestens am nächsten Tag. Für den Aufstieg zählen Antworten unter ${sec(FAST_MS)} Sekunden.</p>
+  </section>
+
+  <section class="card stack help"><h3>Wenn etwas schiefgeht</h3>
+    <p class="small">Eine falsche Antwort kostet 2 Stufen. Die Aufgabe kommt in der Runde gleich nochmal und in den nächsten Tagen öfter. Auch Gold kann man so wieder verlieren, oder wenn man im Schnitt langsamer als ${sec(GOLD_MS)} Sekunden wird. Keine Sorge: Mit ein paar richtigen Antworten ist es schnell wieder da.</p>
+  </section>
+
+  <section class="card stack help"><h3>Wann ist eine Reihe geschafft?</h3>
+    <p class="small">Wenn alle 20 Aufgaben der Reihe Gold sind. Bei der 7er-Reihe:</p>
+    <ul class="list">
+      <li><span class="eq">7 · 1 … 7 · 10</span><span class="meta">10 Malaufgaben</span></li>
+      <li><span class="eq">7 : 7 … 70 : 7</span><span class="meta">10 Teilaufgaben</span></li>
+    </ul>
+    <p class="small">Tauschaufgaben zählen zusammen: 3 · 7 ist dieselbe Aufgabe wie 7 · 3. Geschafft gibt es ein goldenes Schild im Wald, einen Hirsch und die Reihen-Medaille.</p>
+  </section>
+
+  <section class="card stack help"><h3>Welche Aufgaben drankommen</h3>
+    <p class="small">Aufgaben mit Fehlern, langsame Aufgaben und lange nicht geübte kommen öfter. Was sitzt, kommt seltener, damit du keine Zeit verschwendest. Aufgaben mit 1 und 10 kommen selten, die sind zu leicht.</p>
+  </section>
+
+  <section class="card stack help"><h3>Wald und Spaß</h3>
+    <p class="small">Jede Aufgabe ist eine Pflanze im Wald und wächst mit ihrer Farbe. Durstige Pflanzen hast du länger nicht geübt, eine Gießrunde hilft. Tiere und Motive spielst du durch Ziele frei. Monster-Hüpfen ist nur zum Spaß und zählt nicht.</p>
+  </section>
+  <button class="btn" data-tab="home">Zurück</button>`;
+}
+
+const VIEWS = { home: vHome, help: vHelp, forest: vForest, stats: vStats, medals: vMedals, more: vMore, play: vPlay, result: vResult, runner: () => '<div id="runroot" class="runroot"></div>' };
 
 function show(v) {
   view = v;
@@ -580,7 +632,7 @@ function openSheet(k) {
     <div><span class="pill l${l}">${LVNAME[l]}</span></div>
     <div class="tiles"><div class="stat"><b>${it.c}</b><span>richtig</span></div><div class="stat"><b>${it.w}</b><span>falsch</span></div>
     <div class="stat"><b>${it.t ? sec(it.t) : '–'}</b><span>Zeit (Schnitt)</span></div><div class="stat"><b>${it.b} / 5</b><span>Lernstufe</span></div></div>
-    <p class="small">Gold gibt es ab Stufe 4 bei unter 4 Sekunden. Aufsteigen kann eine Aufgabe nur mit Pausen dazwischen, damit sie wirklich sitzt.</p>
+    <p class="small">Gold gibt es ab Stufe 4 bei unter ${GOLD_MS / 1000} Sekunden. Aufsteigen kann eine Aufgabe nur mit Pausen dazwischen, damit sie wirklich sitzt. <button class="link" data-tab="help">So funktioniert's</button></p>
     <div class="btns"><button class="btn" data-act="sheetclose">Schließen</button><button class="btn primary" data-row="${row}">${row}er-Reihe üben</button></div>
   </div>`;
   sh.hidden = false;

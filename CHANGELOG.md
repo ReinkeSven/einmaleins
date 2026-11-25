@@ -2,6 +2,11 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.6.0] - 2026-11-25
+
+### Hinzugefügt
+- Seite „So funktioniert's“ (über das „?“ am Album und aus der Aufgaben-Detailansicht): Farben und Stufen, Weg zu Gold mit Pausen, Absteigen bei Fehlern, wann eine Reihe geschafft ist, welche Aufgaben öfter kommen, Wald. Zahlen kommen direkt aus dem Lernmodell.
+
 ## [1.5.0] - 2026-11-25
 
 ### Hinzugefügt

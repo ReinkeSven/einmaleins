@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DAY, MIN, allKeys, freshState, migrate, encodeBackup, decodeBackup, level, record, weight,
-  pickWeighted, poolFor, weakest, makeQ, canon, distractors, streak, lvl, xpGain, checkMedals, dkey,
+  pickWeighted, poolFor, weakest, makeQ, canon, distractors, durationText, GAP, streak, lvl, xpGain, checkMedals, dkey,
 } from '../app/js/model.js';
 
 const T0 = new Date('2026-11-02T10:00:00').getTime();
@@ -155,4 +155,12 @@ test('Falschantworten sind plausibel nah an der Aufgabe', () => {
   const q = { k: 'm7x8', tok: [7, '·', 8, '=', null], ans: 56 };
   const plausible = new Set([64, 48, 63, 49, 66, 46, 65]);
   for (let i = 0; i < 20; i++) assert.ok(distractors(q).every(v => plausible.has(v)));
+});
+
+test('durationText beschreibt die Pausen zwischen den Stufen', () => {
+  assert.deepEqual(GAP.map(g => durationText(g)), ['keine Pause', 'keine Pause', '20 Minuten', '20 Stunden', '3 Tage', '7 Tage']);
+  assert.equal(durationText(60e3), '1 Minute');
+  assert.equal(durationText(864e5), '1 Tag');
+  assert.equal(durationText(3 * 864e5, true), '3 Tagen');
+  assert.equal(durationText(20 * 36e5, true), '20 Stunden');
 });

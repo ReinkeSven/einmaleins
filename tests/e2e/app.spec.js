@@ -44,6 +44,21 @@ test.describe('Lernen', () => {
     await expect(page.locator('.cta.done')).toBeVisible();
   });
 
+  test('Hilfeseite erklärt Stufen, Pausen und Reihen', async ({ page }) => {
+    await page.goto('/');
+    await page.click('.help-btn');
+    await expect(page.locator('.hero h1')).toHaveText('So funktioniert\'s');
+    const text = await page.locator('#view').innerText();
+    for (const part of ['20 Minuten später', 'Frühestens nach 20 Stunden', 'Nach 3 Tagen', 'kostet 2 Stufen', 'alle 20 Aufgaben', 'unter 4 Sekunden']) expect(text).toContain(part);
+    await expect(page.locator('.help .pill')).toHaveCount(5 + 3);
+    await page.locator('.back').click();
+    await expect(page.locator('.brand-1')).toBeVisible();
+    await page.click('[data-cell="m7x8"]');
+    await page.click('#sheet .link');
+    await expect(page.locator('#sheet')).toBeHidden();
+    await expect(page.locator('.hero h1')).toHaveText('So funktioniert\'s');
+  });
+
   test('Backup: Code exportieren und wieder einspielen', async ({ page }) => {
     await seed(page, seededState());
     await page.goto('/');

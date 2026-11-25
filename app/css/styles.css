@@ -139,6 +139,17 @@ body.playing #app{height:100%}
 .tbar i{display:block;height:100%;background:var(--pink)}
 .theme-new{color:var(--pink)}
 
+/* So funktioniert's */
+.help-btn{display:inline-grid;place-items:center;width:24px;height:24px;margin-left:6px;border:2px solid var(--ink);border-radius:50%;font-family:var(--body);font-weight:800;font-size:14px;vertical-align:middle;background:var(--paper)}
+.link{text-decoration:underline;font-weight:800;color:var(--ink)}
+.back{align-self:flex-start;padding:8px 12px;margin-bottom:6px}
+.help .list li{justify-content:flex-start;gap:12px}
+.help .list li .meta{margin-left:auto}
+.path{counter-reset:s}
+.path li{flex-wrap:wrap}
+.path .when{font-weight:800;min-width:9em}
+.path li .pill{margin-left:auto}
+
 /* Album */
 .card{border:2px solid var(--ink);border-radius:18px;padding:14px;background:var(--paper)}
 .card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}

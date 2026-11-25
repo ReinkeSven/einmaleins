@@ -42,6 +42,7 @@ export function freshState(now = Date.now()) {
     v: 1, items, mode: 'mix', album: 'm', xp: 0, total: 0, correct: 0, rounds: 0, perfect: 0, bosses: 0,
     bestCombo: 0, bestFast: 0, bestStreak: 0, best: { blitz: 0, bossMs: 0 }, days: {}, medals: {},
     lastBackup: 0, created: now,
+    forestTheme: 'auto', themes: {},   // Wald-Motiv: Auswahl und freigeschaltete Motive (id → Zeitpunkt)
   };
 }
 
@@ -56,6 +57,8 @@ export function migrate(o) {
   s.best = { blitz: 0, bossMs: 0, ...(o.best || {}) };
   s.days = o.days || {};
   s.medals = o.medals || {};
+  s.themes = o.themes || {};
+  if (typeof s.forestTheme !== 'string') s.forestTheme = 'auto';
   return s;
 }
 

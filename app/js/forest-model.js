@@ -1,5 +1,5 @@
 // Wald-Logik: reine Funktionen ohne DOM. Der Wald wird vollständig aus dem Lernstand S berechnet,
-// es gibt keinen eigenen Speicher. Pflanzen wachsen mit dem Können, Bewohner kommen durch Fleiß und Erfolge.
+// gespeichert werden nur Motiv-Auswahl und freigeschaltete Motive. Pflanzen wachsen mit dem Können, Bewohner kommen durch Fleiß und Erfolge.
 
 import { DAY, IVL, level, streak, rowGold } from './model.js';
 
@@ -111,4 +111,79 @@ export function featuredGrove(forest) {
   if (maxT > 0) return forest.groves[thirst.indexOf(maxT)].n;
   const growth = forest.groves.map(g => score(g).reduce((a, p) => a + p.stage, 0));
   return forest.groves[growth.indexOf(Math.max(...growth))].n;
+}
+
+/* ---------- Motive ---------- */
+
+/** Weihnachtszeit: 1. Dezember bis 6. Januar */
+export function isChristmasSeason(date) {
+  const m = date.getMonth(), d = date.getDate();
+  return m === 11 || (m === 0 && d <= 6);
+}
+/** Weihnachtsstern am Nachthimmel ab Heiligabend */
+export function isChristmasEve(date) {
+  const m = date.getMonth(), d = date.getDate();
+  return (m === 11 && d >= 24) || (m === 0 && d <= 6);
+}
+
+const goldRows = S => [...Array(10)].filter((_, i) => rowGold(S, i + 1)).length;
+
+/**
+ * Freispielbare Motive, aufsteigend schwerer. progress liefert [aktuell, Ziel];
+ * freigeschaltet wird, sobald aktuell ≥ Ziel – danach bleibt das Motiv dauerhaft frei.
+ */
+export const THEMES = [
+  {
+    id: 'zauber', name: 'Zauberwald', desc: 'Wald ohne Durst: mindestens 60 Pflanzen wachsen und keine ist durstig',
+    progress: (S, now) => { const sm = summary(S, now); return [sm.thirsty ? 0 : Math.min(60, sm.growing), 60]; },
+    hint: (S, now) => { const sm = summary(S, now); return sm.thirsty ? `${sm.thirsty} Pflanzen haben noch Durst` : `${Math.min(60, sm.growing)} von 60 Pflanzen wachsen`; },
+  },
+  {
+    id: 'suess', name: 'Süßigkeitenwald', desc: '10 fehlerfreie Tagesrunden',
+    progress: S => [Math.min(10, S.perfect), 10],
+    hint: S => `${Math.min(10, S.perfect)} von 10 fehlerfreien Tagesrunden`,
+  },
+  {
+    id: 'kirsch', name: 'Kirschblüten-Garten', desc: '4 Reihen komplett auf Gold',
+    progress: S => [Math.min(4, goldRows(S)), 4],
+    hint: S => `${Math.min(4, goldRows(S))} von 4 Reihen auf Gold`,
+  },
+  {
+    id: 'riff', name: 'Korallenriff', desc: '35 richtige Antworten in einer Blitzrunde',
+    progress: S => [Math.min(35, S.best.blitz), 35],
+    hint: S => `Blitz-Rekord ${S.best.blitz} von 35`,
+  },
+  {
+    id: 'weltraum', name: 'Weltraumgarten', desc: 'Alle 155 Aufgaben mindestens auf Silber',
+    progress: S => { const n = Object.values(S.items).filter(it => level(it) >= 2).length; return [n, 155]; },
+    hint: S => `${Object.values(S.items).filter(it => level(it) >= 2).length} von 155 auf Silber oder Gold`,
+  },
+];
+
+/** Schaltet erreichte Motive frei (dauerhaft) und liefert die neu freigeschalteten */
+export function checkThemes(S, now) {
+  const got = [];
+  for (const t of THEMES) {
+    if (S.themes[t.id]) continue;
+    const [cur, goal] = t.progress(S, now);
+    if (cur >= goal) { S.themes[t.id] = now; got.push(t); }
+  }
+  return got;
+}
+
+/** Wählbare Motive: Standard, in der Weihnachtszeit Weihnachten, dazu alle freigeschalteten */
+export function selectableThemes(S, date) {
+  const ids = ['standard'];
+  if (isChristmasSeason(date)) ids.push('christmas');
+  for (const t of THEMES) if (S.themes[t.id]) ids.push(t.id);
+  return ids;
+}
+
+/** Angezeigtes Motiv: 'auto' heißt Weihnachten in der Weihnachtszeit, sonst Standard */
+export function activeTheme(S, date) {
+  const sel = S.forestTheme || 'auto';
+  const xmas = isChristmasSeason(date);
+  if (sel === 'auto') return xmas ? 'christmas' : 'standard';
+  if (selectableThemes(S, date).includes(sel)) return sel;
+  return xmas ? 'christmas' : 'standard';
 }

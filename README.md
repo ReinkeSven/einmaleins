@@ -12,7 +12,7 @@ Lernspiel fürs kleine Einmaleins, vorwärts (`7 · 8`) und rückwärts (`56 : 8
 - **Modi:** Tagesrunde (15 Aufgaben), Blitz (60 s), Boss (10 schwierigste Aufgaben), Reihen-Training
 - **Monster-Hüpfen:** Jump and Run nur zum Spaß, auf das Monster mit der richtigen Zahl springen. Zählt nicht für die Statistik.
 - **Gamification:** Album als 10×10-Matrix (Übung, Bronze, Silber, Gold), 30 Medaillen, XP und Level, Streak
-- **Wald:** jede Aufgabe eine Pflanze, die mit dem Lernstand wächst; durstige Pflanzen und Gießrunde; Bewohner für Serien und Erfolge; Tag und Nacht
+- **Wald:** jede Aufgabe eine Pflanze, die mit dem Lernstand wächst; durstige Pflanzen und Gießrunde; Bewohner für Serien und Erfolge; Tag und Nacht; Weihnachtswald im Dezember und fünf freispielbare Motive
 - **Statistik:** Trefferquote, Antwortzeiten, Verlauf über 14 Tage, schwierigste Aufgaben
 - **Offline-fähig** und auf dem Home-Bildschirm installierbar
 
@@ -49,8 +49,10 @@ Details in [`app/js/model.js`](app/js/model.js).
 | Durst | geübt, aber länger als max(1 Tag, 2 × Wiederholungsintervall der Box) nicht wiederholt |
 | Gießrunde | bis zu 12 durstige Aufgaben, die am stärksten überfälligen zuerst |
 | Bewohner | aus Serie, Bossen, fehlerfreien Runden, Aufgabenzahl, Gold-Aufgaben und Gold-Reihen abgeleitet |
+| Weihnachtswald | automatisch vom 1. Dezember bis 6. Januar (Auswahl „Automatisch“) |
+| Motive | Zauberwald: 60 wachsende Pflanzen ohne Durst · Süßigkeitenwald: 10 fehlerfreie Tagesrunden · Kirschblüten-Garten: 4 Reihen Gold · Korallenriff: 35 im Blitz · Weltraumgarten: alle 155 mindestens Silber |
 
-Der Wald wird vollständig aus dem Lernstand berechnet und hat keinen eigenen Speicher. Details in [`app/js/forest-model.js`](app/js/forest-model.js).
+Der Wald wird aus dem Lernstand berechnet. Gespeichert werden nur die gewählte Ansicht (`forestTheme`) und freigeschaltete Motive (`themes`), damit ein erreichtes Motiv frei bleibt. Motive als Daten: [`app/js/forest-themes.js`](app/js/forest-themes.js). Details in [`app/js/forest-model.js`](app/js/forest-model.js).
 
 ## Entwicklung
 
@@ -74,6 +76,7 @@ app/               ausgelieferte Web-App (wird so auf GitHub Pages veröffentlic
   js/runner.js     Monster-Hüpfen (Canvas)
   js/forest-model.js  Wald-Logik, reine Funktionen
   js/forest.js     Wald-Panorama (Canvas)
+  js/forest-themes.js  Wald-Motive als Daten (Farben, Wetter, Deko)
   js/pixel.js      gemeinsame Pixel-Art-Helfer
   sw.js            Service Worker (Offline-Cache)
   manifest.webmanifest

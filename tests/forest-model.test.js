@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { DAY, HOUR, freshState, record, poolFor, dkey } from '../app/js/model.js';
 import {
   stageOf, isThirsty, thirstiest, groves, creatures, summary, snapshot, diff, featuredGrove, computeForest,
+  THEMES, checkThemes, activeTheme, selectableThemes, isChristmasSeason, isChristmasEve,
 } from '../app/js/forest-model.js';
+import { migrate } from '../app/js/model.js';
 
 const T0 = new Date('2026-11-02T10:00:00').getTime();
 const gold = { b: 4, c: 6, w: 0, t: 2000, l: T0, u: T0 };
@@ -114,4 +116,75 @@ test('Vorschau zeigt den durstigsten Hain, sonst den am weitesten gewachsenen', 
   assert.equal(featuredGrove(computeForest(S, T0)), 4);
   Object.assign(S.items.d2x6, { b: 1, c: 1, l: T0 - 3 * DAY });
   assert.equal(featuredGrove(computeForest(S, T0)), 6);
+});
+
+test('Weihnachtszeit vom 1. Dezember bis 6. Januar, Stern ab Heiligabend', () => {
+  assert.equal(isChristmasSeason(new Date(2026, 10, 30)), false);
+  assert.equal(isChristmasSeason(new Date(2026, 11, 1)), true);
+  assert.equal(isChristmasSeason(new Date(2027, 0, 6)), true);
+  assert.equal(isChristmasSeason(new Date(2027, 0, 7)), false);
+  assert.equal(isChristmasEve(new Date(2026, 11, 23)), false);
+  assert.equal(isChristmasEve(new Date(2026, 11, 24)), true);
+});
+
+test('Aktives Motiv: automatisch Weihnachten im Dezember, sonst Standard', () => {
+  const S = freshState(T0);
+  assert.equal(activeTheme(S, new Date(2026, 10, 25)), 'standard');
+  assert.equal(activeTheme(S, new Date(2026, 11, 10)), 'christmas');
+  S.forestTheme = 'standard';
+  assert.equal(activeTheme(S, new Date(2026, 11, 10)), 'standard');
+  S.forestTheme = 'christmas';                                    // außerhalb der Saison nicht möglich
+  assert.equal(activeTheme(S, new Date(2026, 6, 1)), 'standard');
+});
+
+test('Gesperrte Motive lassen sich nicht wählen, freigeschaltete schon', () => {
+  const S = freshState(T0);
+  S.forestTheme = 'riff';
+  assert.equal(activeTheme(S, new Date(2026, 6, 1)), 'standard');
+  assert.deepEqual(selectableThemes(S, new Date(2026, 6, 1)), ['standard']);
+  S.themes.riff = T0;
+  assert.equal(activeTheme(S, new Date(2026, 6, 1)), 'riff');
+  assert.equal(activeTheme(S, new Date(2026, 11, 10)), 'riff'); // eigene Wahl gilt auch im Dezember
+  assert.deepEqual(selectableThemes(S, new Date(2026, 11, 10)), ['standard', 'christmas', 'riff']);
+});
+
+test('Motive werden bei Erreichen des Ziels dauerhaft freigeschaltet', () => {
+  const S = freshState(T0);
+  assert.deepEqual(checkThemes(S, T0), []);
+  S.perfect = 10;
+  S.best.blitz = 35;
+  assert.deepEqual(checkThemes(S, T0).map(t => t.id), ['suess', 'riff']);
+  S.best.blitz = 0;                                               // bleibt trotzdem frei
+  assert.deepEqual(checkThemes(S, T0), []);
+  assert.ok(S.themes.riff);
+});
+
+test('Zauberwald: 60 wachsende Pflanzen ohne Durst', () => {
+  const S = freshState(T0);
+  const keys = Object.keys(S.items).slice(0, 60);
+  for (const k of keys) Object.assign(S.items[k], { b: 2, c: 2, t: 3000, l: T0 - 2 * DAY });
+  const zauber = THEMES.find(t => t.id === 'zauber');
+  assert.equal(zauber.progress(S, T0)[0], 0);                    // alle durstig
+  assert.match(zauber.hint(S, T0), /60 Pflanzen haben noch Durst/);
+  for (const k of keys) S.items[k].l = T0;                        // gegossen
+  assert.deepEqual(zauber.progress(S, T0), [60, 60]);
+  assert.deepEqual(checkThemes(S, T0).map(t => t.id), ['zauber']);
+});
+
+test('Kirschblüten und Weltraum: Reihen auf Gold, alle Aufgaben auf Silber', () => {
+  const S = freshState(T0);
+  for (const n of [2, 3, 4, 5]) for (const k of poolFor('mix', n)) Object.assign(S.items[k], gold);
+  assert.ok(checkThemes(S, T0).some(t => t.id === 'kirsch'));
+  const welt = THEMES.find(t => t.id === 'weltraum');
+  assert.ok(welt.progress(S, T0)[0] < 155);
+  for (const it of Object.values(S.items)) Object.assign(it, { b: 3, c: 3, t: 3000, l: T0 });
+  assert.deepEqual(welt.progress(S, T0), [155, 155]);
+});
+
+test('Alte Spielstände ohne Motiv-Felder bleiben gültig', () => {
+  const old = freshState(T0);
+  delete old.themes; delete old.forestTheme;
+  const s = migrate(JSON.parse(JSON.stringify(old)));
+  assert.deepEqual(s.themes, {});
+  assert.equal(s.forestTheme, 'auto');
 });

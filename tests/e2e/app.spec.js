@@ -137,6 +137,82 @@ test.describe('Wald', () => {
   }
 });
 
+test.describe('Motive', () => {
+  const themeOf = page => page.locator('#forest-cv').evaluate(cv => cv.forestApi.theme);
+
+  test('Im November: Standard, Motive gesperrt mit Fortschritt, kein Weihnachtswald', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(2026, 10, 25, 12));
+    await page.goto('/');
+    await page.click('#tabs [data-tab=forest]');
+    expect(await themeOf(page)).toBe('standard');
+    await expect(page.locator('[data-theme="auto"]')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('[data-theme="christmas"]')).toHaveCount(0);
+    for (const id of ['zauber', 'suess', 'kirsch', 'riff', 'weltraum']) await expect(page.locator(`[data-theme="${id}"]`)).toBeDisabled();
+    await expect(page.locator('[data-theme="suess"]')).toContainText('0 von 10 fehlerfreien Tagesrunden');
+    await expect(page.locator('.themes').locator('..')).toContainText('0 von 5 freigespielt');
+  });
+
+  test('Im Dezember automatisch Weihnachtswald, abwählbar und gespeichert', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(2026, 11, 10, 12));
+    await page.goto('/');
+    await page.click('#tabs [data-tab=forest]');
+    expect(await themeOf(page)).toBe('christmas');
+    await page.click('[data-theme="standard"]');
+    expect(await themeOf(page)).toBe('standard');
+    expect((await readState(page)).forestTheme).toBe('standard');
+    await page.reload();
+    await page.click('#tabs [data-tab=forest]');
+    expect(await themeOf(page)).toBe('standard');
+    await page.click('[data-theme="christmas"]');
+    expect(await themeOf(page)).toBe('christmas');
+  });
+
+  test('Fehlerfreie Runde schaltet den Süßigkeitenwald frei, danach wählbar', async ({ page }) => {
+    await page.clock.setFixedTime(new Date(2026, 10, 25, 12));
+    const S = seededState(new Date(2026, 10, 25, 12).getTime());
+    S.perfect = 9;
+    await seed(page, S);
+    await page.goto('/');
+    await page.click('[data-act=daily]');
+    await playRound(page);
+    await expect(page.locator('.forest-card')).toContainText('Neues Motiv freigeschaltet: Süßigkeitenwald');
+    await page.click('.forest-card [data-tab=forest]');
+    await expect(page.locator('[data-theme="suess"]')).toBeEnabled();
+    await page.click('[data-theme="suess"]');
+    expect(await themeOf(page)).toBe('suess');
+    expect((await readState(page)).themes.suess).toBeTruthy();
+  });
+
+  test('Bereits erreichte Ziele werden beim Start freigeschaltet', async ({ page }) => {
+    const S = seededState();
+    S.best.blitz = 36;
+    await seed(page, S);
+    await page.goto('/');
+    expect((await readState(page)).themes.riff).toBeTruthy();
+    await page.click('#tabs [data-tab=forest]');
+    await page.click('[data-theme="riff"]');
+    expect(await themeOf(page)).toBe('riff');
+  });
+
+  for (const id of ['christmas', 'zauber', 'suess', 'kirsch', 'riff', 'weltraum']) {
+    test(`Motiv ${id} zeichnet fehlerfrei bei Tag und Nacht`, async ({ page }) => {
+      const S = seededState(new Date(2026, 11, 24, 12).getTime());
+      S.themes = { zauber: 1, suess: 1, kirsch: 1, riff: 1, weltraum: 1 };
+      S.forestTheme = id;
+      await seed(page, S);
+      for (const hour of [12, 23]) {
+        await page.clock.setFixedTime(new Date(2026, 11, 24, hour));
+        await page.goto('/');
+        await page.click('#tabs [data-tab=forest]');
+        expect(await themeOf(page)).toBe(id);
+        await page.waitForTimeout(400);
+        await page.click('[data-grove="10"]');
+        await page.waitForTimeout(400);
+      }
+    });
+  }
+});
+
 test.describe('Spaß und Technik', () => {
   test('Monster-Hüpfen läuft und verändert die Lernstatistik nicht', async ({ page }) => {
     await seed(page, seededState());

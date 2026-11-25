@@ -5,7 +5,11 @@ import {
   record, xpGain, streak, lvl, rowGold, checkMedals, distractors,
 } from './model.js';
 import { createRunner } from './runner.js';
-import { STAGES, CREATURES, computeForest, snapshot, diff, thirstiest, featuredGrove } from './forest-model.js';
+import {
+  STAGES, CREATURES, THEMES, computeForest, snapshot, diff, thirstiest, featuredGrove,
+  checkThemes, activeTheme, selectableThemes, isChristmasSeason,
+} from './forest-model.js';
+import { THEME_STYLES, themeSwatch } from './forest-themes.js';
 import { createForestView, creatureIcon } from './forest.js';
 
 const KEY = 'einmaleins-arena-v1';
@@ -242,6 +246,7 @@ function endRun(win) {
   S.bestStreak = Math.max(S.bestStreak, streak(S));
   R.newMedals = checkMedals(S);
   R.forestDiff = diff(R.forestBefore, snapshot(S, Date.now()));
+  R.newThemes = checkThemes(S, Date.now());
   save();
   show('result');
 }
@@ -392,7 +397,7 @@ function vResult() {
     <div class="stat"><b>+${r.xp}</b><span>XP, beste Kette ${r.maxCombo}</span></div>
   </div>
   ${r.newMedals.length ? `<section class="card"><div class="card-head"><h3>Neue Medaille${r.newMedals.length > 1 ? 'n' : ''}</h3></div><div class="new-medals">${r.newMedals.map((m, i) => `<div class="medal-card on" style="animation-delay:${i * 0.12}s">${medalSvg(m, true)}<b>${esc(m.name)}</b><small>${esc(m.desc)}</small></div>`).join('')}</div></section>` : ''}
-  ${forestCard(r.forestDiff)}
+  ${forestCard(r.forestDiff, r.newThemes)}
   ${wrongU.length ? `<section class="card"><div class="card-head"><h3>Kommen öfter dran</h3></div><ul class="list">${wrongU.map(k => `<li><span class="eq">${canon(k)}</span><span class="pill l${level(S.items[k])}">${LVNAME[level(S.items[k])]}</span></li>`).join('')}</ul></section>` : ''}
   <div class="btns"><button class="btn" data-act="home">Fertig</button><button class="btn primary" data-act="again">Nochmal</button></div>`;
 }
@@ -470,8 +475,8 @@ function vMore() {
 /* ---------- Wald ---------- */
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
-function forestCard(d) {
-  if (!d || (!d.grown.length && !d.watered.length && !d.newCreatures.length)) return '';
+function forestCard(d, newThemes = []) {
+  if (!d || (!d.grown.length && !d.watered.length && !d.newCreatures.length && !newThemes.length)) return '';
   const parts = [];
   if (d.grown.length) parts.push(`${plural(d.grown.length, 'Pflanze ist', 'Pflanzen sind')} gewachsen`);
   if (d.watered.length) parts.push(`${plural(d.watered.length, 'Pflanze', 'Pflanzen')} gegossen`);
@@ -479,6 +484,7 @@ function forestCard(d) {
   return `<section class="card forest-card"><div class="card-head"><h3>Im Wald</h3></div>
     <p class="forest-news">${parts.join(', ')}${parts.length ? '.' : ''}</p>
     ${names.length ? `<p class="forest-news"><b>Neu eingezogen:</b> ${names.map(esc).join(', ')}</p>` : ''}
+    ${newThemes.map(t => `<p class="forest-news theme-new"><b>Neues Motiv freigeschaltet:</b> ${esc(t.name)}</p>`).join('')}
     <button class="btn" data-tab="forest">Zum Wald</button></section>`;
 }
 
@@ -510,16 +516,43 @@ function vForest() {
   ${sm.thirsty
     ? `<section class="card stack"><h3>${plural(sm.thirsty, 'Pflanze hat', 'Pflanzen haben')} Durst</h3><p class="small">Aufgaben, die länger nicht geübt wurden, lassen die Blätter hängen. Eine Gießrunde übt genau diese.</p><button class="btn primary" data-act="water">Gießrunde starten</button></section>`
     : '<section class="card stack"><h3>Alles gegossen</h3><p class="small">Keine Pflanze hat gerade Durst. Weiterüben lässt den Wald wachsen.</p></section>'}
+  ${themeSection()}
   <section class="card stack"><h3>So wächst der Wald</h3><div class="legend stages">${stageRow}</div></section>
   <section class="stack"><span class="label">Bewohner</span><div class="medals">${creatureCards}</div></section>`;
+}
+
+/* ---------- Motive ---------- */
+function themeCard({ id, name, desc, locked, sel, progress }) {
+  const sw = themeSwatch(id === 'auto' ? (isChristmasSeason(new Date()) ? 'christmas' : 'standard') : id)
+    .map(c => `<i style="background:${c}"></i>`).join('');
+  const bar = locked && progress ? `<span class="tbar" aria-hidden="true"><i style="width:${Math.round(progress[0] / progress[1] * 100)}%"></i></span>` : '';
+  return `<button class="theme-card${locked ? ' locked' : ''}${sel ? ' sel' : ''}" data-theme="${id}" ${locked ? 'disabled' : ''} aria-pressed="${sel}">
+    <span class="swatch">${sw}</span><b>${esc(name)}</b><small>${esc(desc)}</small>${bar}</button>`;
+}
+
+function themeSection() {
+  const nowD = new Date(), now = Date.now();
+  const sel = S.forestTheme || 'auto';
+  const selectable = selectableThemes(S, nowD);
+  const cards = [
+    themeCard({ id: 'auto', name: 'Automatisch', desc: 'Standard, vom 1. Dezember bis 6. Januar Weihnachtswald', sel: sel === 'auto' }),
+    themeCard({ id: 'standard', name: THEME_STYLES.standard.name, desc: 'Der Sommerwald', sel: sel === 'standard' }),
+  ];
+  if (isChristmasSeason(nowD)) cards.push(themeCard({ id: 'christmas', name: THEME_STYLES.christmas.name, desc: 'Schnee, Lichter und Geschenke, nur in der Weihnachtszeit', sel: sel === 'christmas' }));
+  for (const t of THEMES) {
+    const open = selectable.includes(t.id);
+    cards.push(themeCard({ id: t.id, name: t.name, desc: open ? t.desc : t.hint(S, now), locked: !open, sel: sel === t.id, progress: open ? null : t.progress(S, now) }));
+  }
+  const unlocked = THEMES.filter(t => S.themes[t.id]).length;
+  return `<section class="stack"><span class="label">Motive · ${unlocked} von ${THEMES.length} freigespielt</span><div class="themes">${cards.join('')}</div></section>`;
 }
 
 function mountForest(v) {
   const f = computeForest(S, Date.now());
   if (v === 'forest') {
-    forestView = createForestView($('#forest-cv'), { forest: f, focus: featuredGrove(f), onPlant: openSheet });
+    forestView = createForestView($('#forest-cv'), { forest: f, focus: featuredGrove(f), onPlant: openSheet, theme: activeTheme(S, new Date()) });
   } else if (v === 'home') {
-    forestView = createForestView($('#forest-preview'), { forest: f, focus: featuredGrove(f), interactive: false });
+    forestView = createForestView($('#forest-preview'), { forest: f, focus: featuredGrove(f), interactive: false, theme: activeTheme(S, new Date()) });
   }
 }
 
@@ -639,7 +672,7 @@ const ACTIONS = {
 document.addEventListener('click', e => {
   const t = e.target;
   if (t.id === 'sheet') { closeSheet(); return; }
-  const el = t.closest('[data-act],[data-tab],[data-mode],[data-album],[data-cell],[data-row],[data-grove]');
+  const el = t.closest('[data-act],[data-tab],[data-mode],[data-album],[data-cell],[data-row],[data-grove],[data-theme]');
   if (!el || el.closest('#pad')) return;
   const ds = el.dataset;
   if (ds.tab) { closeSheet(); ui = blankUi(); show(ds.tab); return; }
@@ -647,6 +680,7 @@ document.addEventListener('click', e => {
   if (ds.album) { S.album = ds.album; save(); show('home'); return; }
   if (ds.cell) { openSheet(ds.cell); return; }
   if (ds.grove) { if (forestView) forestView.focus(Number(ds.grove)); return; }
+  if (ds.theme) { S.forestTheme = ds.theme; save(); show('forest'); return; }
   if (ds.row) { closeSheet(); startRun('row', Number(ds.row)); return; }
   if (ds.act && ACTIONS[ds.act]) ACTIONS[ds.act]();
 });
@@ -660,6 +694,7 @@ document.addEventListener('change', e => {
 probeStorage();
 const local = loadLocal();
 S = local ? migrate(local) : freshState();
+checkThemes(S, Date.now());   // bereits erreichte Ziele (z. B. aus früheren Runden) freischalten
 save();
 show('home');
 askPersist().then(() => { if (view === 'more') show('more'); });

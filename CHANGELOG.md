@@ -2,6 +2,14 @@
 
 Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/), Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.4.0] - 2026-11-25
+
+### Hinzugefügt
+- Weihnachtswald, automatisch vom 1. Dezember bis 6. Januar: Schnee, Schneekappen, Lichterketten an den Tannen, Geschenke unter blühenden Bäumen, Schneemänner, Rentiere, zugefrorener Bach, ab Heiligabend ein Stern am Nachthimmel
+- Fünf freispielbare Motive mit eigenen Farben, Wetter und Deko: Zauberwald (Wald ohne Durst), Süßigkeitenwald (10 fehlerfreie Tagesrunden), Kirschblüten-Garten (4 Reihen Gold), Korallenriff (35 im Blitz), Weltraumgarten (alle Aufgaben mindestens Silber)
+- Motivauswahl im Wald-Tab mit Fortschritt für gesperrte Motive; Meldung im Rundenergebnis beim Freischalten
+- Neue Felder im Spielstand: `forestTheme`, `themes` (abwärtskompatibel über `migrate()`)
+
 ## [1.3.0] - 2026-11-22
 
 ### Hinzugefügt
